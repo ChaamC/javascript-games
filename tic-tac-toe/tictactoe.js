@@ -2,7 +2,7 @@
 
 $(document).ready(function(){
 	//hint: http-server
-	$('#left_panel').load('/javascript-games/navbar.html');
+	$('#left_panel').load('../navbar.html');
 	$("#cover").fadeOut(100);
 
 	var is_x_turn = true;
