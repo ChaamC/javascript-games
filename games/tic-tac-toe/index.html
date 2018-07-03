@@ -1,9 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<link rel="stylesheet" href="style.css">
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
 </head>
 <body>
- Hello!
+ 	<div id="game_container">
+ 		<div class="section_title">Tic-Tac-Toe</div>
+ 		<div id="game_screen">
+ 			<div class="row">
+ 				<div id="0" class="column">
+ 				</div>
+ 				<div id="1" class="column">
+ 				</div>
+ 				<div id="2" class="column">
+ 				</div>
+ 			</div>
+ 			<div class="row">
+ 				<div id="3" class="column">
+ 				</div>
+ 				<div id="4" class="column">
+ 				</div>
+ 				<div id="5" class="column">
+ 				</div>
+ 			</div>
+ 			<div class="row">
+ 				<div id="6" class="column">
+ 				</div>
+ 				<div id="7" class="column">
+ 				</div>
+ 				<div id="8" class="column">
+ 				</div>
+ 			</div>
+ 		</div>
+ 		<div id="score">
+ 			Score :
+ 			<div>X = <span id="winner1">0</span> wins</div>
+ 			<div>O = <span id="winner2">0</span> wins</div>
+ 		</div>
+ 	</div>
+ 	<div id="menu">
+		<a href="../../index.html" class="button">Back</a>
+		<a class="button" id="restart_button">Restart</a>
+	</div>
 </body>
 <script src='tictactoe.js'></script>
 </html>
