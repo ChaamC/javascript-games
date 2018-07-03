@@ -1,0 +1,53 @@
+
+
+#restart_button{
+	position: absolute;
+	top:115px;
+	width: 100px;
+	left:11%;
+	background-color: #eed86e;
+}
+#restart_button:hover{
+	background-color: #6ECF72;
+}
+
+
+#score{
+	position:absolute;
+	left:10%;
+	top:30%;
+	background-color: #EEEEDD;
+	padding: 10px;
+	border: 3px solid #444477;
+	border-radius: 10px;
+}
+
+#game_screen{
+	position: absolute;
+	border: 5px solid #444477;
+	margin: 0 auto;
+	background-color: #CCCCCC;
+	width: 300px;
+	height: 300px;
+	top:25%;
+	left:30%;
+}
+.column{
+	float:left;
+	width: 32.65%;
+	height: 100%;
+	background-color: #BBBBDD;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border: 1px solid #774444;
+}
+.row{
+	height: 32.8%;
+}
+
+body {
+	font-family: 'Verdana', sans-serif;
+	font-size: 16px;
+	background-color: #e2e1d9;
+}

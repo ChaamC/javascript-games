@@ -1,19 +1,4 @@
-.game_button {
-	background-color: #4CAF50;
-	color: white;
-	padding: 5px 15px;
-	border: 3px solid #CCCCCC;
-	border-radius: 8px;
-	position: relative;
-	left: 10%;
-	top: 30px;
-	-webkit-transition-duration: 0.4s;
-    transition-duration: 0.4s;
-    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.2), 0 6px 2px 0 rgba(0,0,0,0.19);
-}
-.game_button:hover{
-	background-color: #6ECF72;
-}
+
 
 .section_title{
 	margin: 10px;
@@ -27,15 +12,10 @@
     box-shadow: 0 4px 16px 0 rgba(0,0,0,0.2), 0 2px 2px 0 rgba(0,0,0,0.19);
 }
 
-#game_container{
-	position: absolute;
-	border: 3px solid #333333;
-	width: 80%;
-	height: 90%;
-}
 
 body {
-	font-family: 'Arial', sans-serif;
+	font-family: 'Verdana', sans-serif;
 	font-size: 22px;
 	text-decoration: none;
+	background-color: #e2e1d9
 }
