@@ -5,6 +5,13 @@ $(document).ready(function(){
 	$('#left_panel').load('../navbar.html');
 	$("#cover").fadeOut(100);
 
+	$("#audio_pop")[0].load();
+	$("#audio_pop")[0].volume = 0.4;
+	$("#audio_tic")[0].load();
+	$("#audio_tic")[0].volume = 0.2;
+	$("#audio_tic")[0].loop = true;
+	$("#audio_tic")[0].play();
+
 	var is_x_turn = true;
 	var is_game_won = false;
 	var boxes_content = [0,0,0,
@@ -59,11 +66,28 @@ $(document).ready(function(){
 		$("img.oImg").remove();
 	});
 
+	$(document).on('click', '#sound_button', function(event){
+		if($(this).hasClass("on"))
+		{
+			$(this).addClass("off");
+			$(this).removeClass("on");
+			$("#audio_tic")[0].pause();
+		}
+		else
+		{
+			$(this).addClass("on");
+			$(this).removeClass("off");
+			$("#audio_tic")[0].play();
+		}
+	});
+
 	$(document).on('click', '.column', function(event){
 
 		if(boxes_content[event.target.id] == 0 && 
 			!is_game_won)
 		{
+			$("#audio_pop")[0].play();
+
 			if (is_x_turn)
 				boxes_content[event.target.id] = 1;
 			else

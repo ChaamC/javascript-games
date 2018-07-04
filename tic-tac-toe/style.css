@@ -11,6 +11,20 @@
 	background-color: #6ECF72;
 }
 
+#sound_button{
+	position: absolute;
+	top: 350px;
+	width: 70px;
+	left:12.5%;
+	border-radius: 5px;
+}
+.on { 
+	background-color: #5555BB;
+}
+.off {
+	background-color: #DD6666;
+}
+
 
 #score{
 	position:absolute;
