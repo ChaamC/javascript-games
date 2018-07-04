@@ -32,13 +32,20 @@ $(document).ready(function(){
 				return boxes_content[2];
 		return false;
 	};
-	function drawBoxes(){
-		for(i = 0; i < 9; i++)
+	function drawBoxes(boxID){
+		if(boxes_content[boxID] == 1 )
 		{
-			if(boxes_content[i] == 1)
-				$('#'+i).text("X");
-			else if(boxes_content[i] == 2)
-				$('#'+i).text("o");
+			var xImg = document.createElement("IMG");
+			xImg.setAttribute("src", "resources/X.png");
+			xImg.setAttribute("class", "xImg")
+			$('#'+boxID).append(xImg);
+		}
+		else if(boxes_content[boxID] == 2 )
+		{
+			var oImg = document.createElement("IMG");
+			oImg.setAttribute("src", "resources/O.png");
+			oImg.setAttribute("class", "oImg")
+			$('#'+boxID).append(oImg);
 		}
 	};
 
@@ -48,11 +55,12 @@ $(document).ready(function(){
 		boxes_content = [0,0,0,
 						0,0,0,
 						0,0,0];
-		for(i = 0; i < 9; i++)
-			$('#'+i).text("");
+		$("img.xImg").remove();
+		$("img.oImg").remove();
 	});
 
 	$(document).on('click', '.column', function(event){
+
 		if(boxes_content[event.target.id] == 0 && 
 			!is_game_won)
 		{
@@ -62,7 +70,7 @@ $(document).ready(function(){
 				boxes_content[event.target.id] = 2;
 			is_x_turn = !is_x_turn;
 
-			drawBoxes();
+			drawBoxes(event.target.id);
 
 			var winner = checkVictoryConditions()
 			if(winner)
@@ -70,7 +78,6 @@ $(document).ready(function(){
 				nb_of_wins[winner-1]++;
 				is_game_won = true;
 				$('#winner'+winner).text(nb_of_wins[winner-1]);
-				console.log(nb_of_wins);
 			}
 		}
 	});
