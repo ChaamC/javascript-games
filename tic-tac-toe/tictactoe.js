@@ -20,6 +20,7 @@ $(document).ready(function(){
 	$("#audio_tic")[0].volume = 0.2;
 	$("#audio_tic")[0].loop = true;
 	$("#audio_tic")[0].play();
+
 	$("#audio_win")[0].load();
 	$("#audio_win")[0].volume = 0.8;
 	$("#audio_tie")[0].load();
