@@ -136,7 +136,7 @@ $(document).ready(function(){
 		if(boxes_content[event.target.id] == 0 && 
 			!is_game_finished)
 		{
-			$("#audio_pop")[0].play();
+			$("#audio_pop").clone()[0].play();
 
 			if (is_x_turn)
 			{
