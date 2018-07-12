@@ -28,12 +28,28 @@
 
 #score{
 	position:absolute;
-	left:10%;
-	top:30%;
+	left:35.3%;
+	top:83%;
+	width: 200px;
 	background-color: #EEEEDD;
-	padding: 10px;
 	border: 3px solid #444477;
-	border-radius: 10px;
+	border-radius: 2px;
+}
+
+.score_column{
+	float:left;
+	width: 33.333%;
+	height: 100%;
+	text-align:center;
+	padding: 10px;
+	box-sizing: border-box;
+}
+
+#score_p1{
+}
+#score_p2{
+}
+#score_tie{
 }
 
 #game_screen{
@@ -48,7 +64,7 @@
 }
 .column{
 	float:left;
-	width: 32.65%;
+	width: 32.66%;
 	height: 100%;
 	background-color: #BBBBDD;
 	display: flex;
