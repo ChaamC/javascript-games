@@ -16,10 +16,12 @@ $(document).ready(function(){
 
 	$("#audio_pop")[0].load();
 	$("#audio_pop")[0].volume = 0.4;
+
+	$("#audio_tic")[0].src = $("#audio_tic")[0].src;
 	$("#audio_tic")[0].load();
 	$("#audio_tic")[0].volume = 0.2;
 	$("#audio_tic")[0].loop = true;
-	$("#audio_tic")[0].play();
+	$("#audio_tic")[0].pause();
 
 	$("#audio_win")[0].load();
 	$("#audio_win")[0].volume = 0.8;
