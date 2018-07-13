@@ -32,6 +32,9 @@
 #tic-tac-toe_button{
 	top:65px;
 }
+#snake_button{
+	top:105px;
+}
 
 .section_title{
 	margin: 5px auto;
@@ -51,18 +54,6 @@
 	left: 0px;
 	padding: 0 104px;
 	width: 100%;
-	box-sizing: border-box;
-}
-
-#game_container{
-	position:relative;
-	border: 2px solid #333333;
-	border-radius: 3px;
-	margin: 0 auto;
-	width: 831px;
-	height: 570px;
-	background-color: #E9F1F7;
-	top: 5%;
 	box-sizing: border-box;
 }
 

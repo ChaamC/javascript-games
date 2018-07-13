@@ -3,19 +3,31 @@
 #restart_button{
 	position: absolute;
 	top:115px;
-	width: 100px;
-	left:11%;
-	background-color: #eed86e;
+	width: 70px;
+	left:3%;
+	border-radius: 5px;
+	background-color: #B9A959;
 }
 #restart_button:hover{
+	background-color: #6ECF72;
+}
+#twoP_button{
+	position: absolute;
+	top:170px;
+	width: 70px;
+	left:3%;
+	border-radius: 5px;
+	background-color: #B9A959;
+}
+#twoP_button:hover{
 	background-color: #6ECF72;
 }
 
 #sound_button{
 	position: absolute;
-	top: 350px;
+	top: 225px;
 	width: 70px;
-	left:12.5%;
+	left:3%;
 	border-radius: 5px;
 }
 .on { 
@@ -28,28 +40,14 @@
 
 #score{
 	position:absolute;
-	left:35.3%;
-	top:83%;
-	width: 200px;
+	left:3%;
+	top:53%;
+	width: 80px;
 	background-color: #EEEEDD;
 	border: 3px solid #444477;
 	border-radius: 2px;
-}
-
-.score_column{
-	float:left;
-	width: 33.333%;
-	height: 100%;
-	text-align:center;
-	padding: 10px;
-	box-sizing: border-box;
-}
-
-#score_p1{
-}
-#score_p2{
-}
-#score_tie{
+	text-align:left;
+	padding: 3px;
 }
 
 #game_container{
@@ -59,37 +57,38 @@
 	margin: 0 auto;
 	width: 831px;
 	height: 570px;
-	background-color: #E9F1F7;
+	background-color: #202020;
 	top: 5%;
 	box-sizing: border-box;
 }
 
 #game_screen{
 	position: absolute;
-	border: 5px solid #444477;
+	border: 5px solid #a89859;
 	margin: 0 auto;
-	background-color: #CCCCCC;
-	width: 300px;
-	height: 300px;
-	top:25%;
-	left:30%;
+	background-color: #202020;
+	width: 500px;
+	height: 500px;
+	top:7%;
+	left:20%;
 }
 .column{
+	width: 2%;
 	float:left;
-	width: 32.66%;
 	height: 100%;
-	background-color: #BBBBDD;
+	background-color: #29253E;
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	border: 1px solid #774444;
+	border: 1px solid #2E4A28;
+	box-sizing: border-box;
 }
 .row{
-	height: 32.8%;
+	height: 2%;
 }
 
 body {
 	font-family: 'Verdana', sans-serif;
 	font-size: 16px;
-	background-color: #e2e1d9;
+	background-color: #050705;
 }
