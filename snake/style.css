@@ -62,6 +62,22 @@
 	box-sizing: border-box;
 }
 
+.game_message{
+	position:absolute;
+	color: #DDDDDD;
+	width: 500px;
+	left:20%;
+	z-index:1;
+	text-align: center;
+}
+
+#input_message{
+	top:20%;
+}
+#winner_message{
+	top:40%;
+}
+
 #game_screen{
 	position: absolute;
 	border: 5px solid #a89859;

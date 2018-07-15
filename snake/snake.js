@@ -1,8 +1,5 @@
 
-var position_array = [];
-var position_array_p2 = [];
-var next_position = [];
-var next_position_p2 = [];
+
 var direction_enum = {
 	UP: 1,
 	DOWN: 2,
@@ -13,19 +10,18 @@ var direction_enum = {
 	A: 7,
 	D: 8
 };
-var direction = direction_enum.UP;
-var direction_p2 = direction_enum.W;
-var direction_queue = [];//queue of direction change
-var direction_queue_p2 = [];//queue of direction change
+
 var spot_location = [0,0];
-var hasMovedSinceDirectionChanged = true;
-var hasMovedSinceDirectionChanged_p2 = true;
-var hasDied = false;
-var hasDied_p2 = false;
+
 var death_color = ["#FFCE00", "#29253E"];
 var keyPressed = [0,0,0,0, 0,0,0,0];
 
+var start_message = ["Press key to start", ""];
+
+var gameStarted = false;
+
 function snake () {
+	this.ID = "";
 	this.position_array = [];
 	this.next_position = []
 	this.direction = -1;
@@ -42,9 +38,6 @@ var isP2Mode = false;
 var GRID_SIZE = 50;
 
 var highscore = 0;
-
-var p1_color = ["#3BD11B", "#4118F7"]
-var p2_color = ["#3BD11B", "#000055"]
 
 //Used for death animation
 var counter = 0;
@@ -73,6 +66,7 @@ function load_grid()
 
 function initialize_game()
 {
+
 	for(i = 0; i < GRID_SIZE; i++)
     {
     	for(j = 0; j < GRID_SIZE; j++)
@@ -80,6 +74,7 @@ function initialize_game()
     }
 	snake1.position_array = [[25,25],[26,25],[27,25],[28,25]];
 	snake1.direction = direction_enum.UP;
+	snake1.direction_queue = [];
 	snake1.hasMovedSinceDirectionChanged = true;
 	snake1.hasDied = false;
 
@@ -89,10 +84,25 @@ function initialize_game()
 	}
 	snake2.position_array = [[25,15],[26,15],[27,15],[28,15]];
 	snake2.direction = direction_enum.W;
+	snake2.direction_queue = [];
 	snake2.hasMovedSinceDirectionChanged = true;
 	snake2.hasDied = false;
 
+	gameStarted = false;
+
 	draw_new_spot();
+
+	draw_player(snake1.position_array, snake1.color);
+	if(isP2Mode)
+	{
+		draw_player(snake2.position_array, snake2.color);
+	}
+
+	counter = 0;
+	counter2 = 0;
+	lastcounter2 = counter2;
+	$("#input_message").text(start_message[counter2]);
+	$("#winner_message").text("");
 }
 
 function validate_next_position(next_pos, position_arr, position_arr_enemy)
@@ -186,6 +196,18 @@ function isOppositeDirectionP2(direction1, direction2)
 		return true;
 	return false;
 }
+function arePlayersOppositeDirection(directionP1, directionP2)
+{
+	if(directionP1 == direction_enum.UP && directionP2 == direction_enum.S)
+		return true;
+	if(directionP1 == direction_enum.DOWN && directionP2 == direction_enum.W)
+		return true;
+	if(directionP1 == direction_enum.LEFT && directionP2 == direction_enum.D)
+		return true;
+	if(directionP1 == direction_enum.RIGHT && directionP2 == direction_enum.A)
+		return true;
+	return false;
+}
 
 function updateDirection()
 {
@@ -242,22 +264,57 @@ function moveSnake(p_snake, enemy_snake)
 	    {
 			$("#tile" + p_snake.position_array[i][0] + "_" + p_snake.position_array[i][1]).css('background-color', death_color[0]);
 		}
+
+		$("#input_message").text("Press spacebar to restart, dude");
+
+		if(isP2Mode)
+		{
+			//check if is a tie
+			if(p_snake.next_position[0] == enemy_snake.position_array[0][0] &&
+				p_snake.next_position[1] == enemy_snake.position_array[0][1] &&
+				arePlayersOppositeDirection(snake1.direction, snake2.direction) )
+			{
+				enemy_snake.hasDied = true;
+				for(i = 1; i < enemy_snake.position_array.length; i++)
+			    {
+					$("#tile" + enemy_snake.position_array[i][0] + "_" + enemy_snake.position_array[i][1]).css('background-color', death_color[0]);
+				}
+				$("#winner_message").text("It's a tie, oh my gadd D:");
+			}
+			else
+			{
+				$("#winner_message").text(enemy_snake.ID + " WINS!! :P");
+			}
+		}
+		else
+		{
+			$("#winner_message").text("Score : ");
+		}
 	}
 }
 
-function deathAnimation(position_arr)
+function deathAnimation()
 {
 	counter2 = Math.floor(counter / 4) % 2;
 	if(counter2 != lastcounter2)
 	{
 		lastcounter2 = counter2;
 
-		for(i = 1; i < position_arr.length; i++)
-	    {
-	    	$("#tile" + position_arr[i][0] + "_" + position_arr[i][1]).css('background-color', death_color[counter2]);
-	    }
+		if(snake1.hasDied)
+		{
+			for(i = 1; i < snake1.position_array.length; i++)
+		    {
+		    	$("#tile" + snake1.position_array[i][0] + "_" + snake1.position_array[i][1]).css('background-color', death_color[counter2]);
+		    }
+		}
+		if(snake2.hasDied)
+		{
+			for(i = 1; i < snake2.position_array.length; i++)
+		    {
+		    	$("#tile" + snake2.position_array[i][0] + "_" + snake2.position_array[i][1]).css('background-color', death_color[counter2]);
+		    }
+		}
 	}
-		
     counter++;
 }
 
@@ -274,27 +331,22 @@ $(document).ready(function(){
 	snake1.direction = direction_enum.UP;
 	snake2.direction = direction_enum.W;
 	snake1.color = ["#3BD11B", "#4118F7"];
-	snake2.color = ["#3BD11B", "#000055"];
+	snake2.color = ["#eb7d2f", "#8e25a8"];//ff33cc
+	snake1.ID = "Blue";
+	snake2.ID = "Purple";
 
 	load_grid();
 	initialize_game();
-	draw_player(snake1.position_array, snake1.color);
-	if(isP2Mode)
-	{
-		draw_player(snake2.position_array, snake2.color);
-	}
 
 	setInterval(function(){ 
 
-		if(snake1.hasDied)
+	
+		if(snake1.hasDied || snake2.hasDied)
 		{
-			deathAnimation(snake1.position_array);
+			deathAnimation();
 		}
-		else if(snake2.hasDied)
+		else if(gameStarted)
 		{
-			deathAnimation(snake2.position_array);
-		}
-		else{
 			updateDirection();
 
 			switch(snake1.direction) {
@@ -334,42 +386,84 @@ $(document).ready(function(){
 				moveSnake(snake2, snake1);
 			}
 	    }
+	    else
+	    {
+	    	counter2 = Math.floor(counter / 6) % 2;
+			if(counter2 != lastcounter2)
+			{
+				lastcounter2 = counter2;
+
+			    $("#input_message").text(start_message[counter2]);
+			    
+			}
+				
+		    counter++;
+	    }
 	}, 80);
 
 	
 
 	//Detect arrow_keys pressed event
 	$(document).on('keydown',function(evt) {
-
-		if(!snake1.hasDied)
+		if(!gameStarted)
 		{
-		    if (evt.keyCode == 38 && !keyPressed[direction_enum.UP]) {
-	    		snake1.direction_queue.push(direction_enum.UP);
-		    }
-		    if (evt.keyCode == 40 && !keyPressed[direction_enum.DOWN]) {
-	    		snake1.direction_queue.push(direction_enum.DOWN);
-		    }
-		    if (evt.keyCode == 37 && !keyPressed[direction_enum.LEFT]) {
-	    		snake1.direction_queue.push(direction_enum.LEFT);
-		    }
-		    if (evt.keyCode == 39 && !keyPressed[direction_enum.RIGHT]) {
-	    		snake1.direction_queue.push(direction_enum.RIGHT);
-		    }
+			if (evt.keyCode == 38 ||
+				evt.keyCode == 40 ||
+				evt.keyCode == 37 ||
+				evt.keyCode == 39)
+			{
+				gameStarted = true;
+				$("#input_message").text("");
+			}
+			else if (isP2Mode && (evt.keyCode == 87 ||
+								evt.keyCode == 83 ||
+								evt.keyCode == 65 ||
+								evt.keyCode == 68) )
+			{
+				gameStarted = true;	
+				$("#input_message").text("");	
+			}
 		}
-		if(isP2Mode && !snake2.hasDied)
-	    {
-		    if (evt.keyCode == 87) {
-    			snake2.direction_queue.push(direction_enum.W);
-		    }
-		    else if (evt.keyCode == 83) {
-    			snake2.direction_queue.push(direction_enum.S);
-		    }
-		    else if (evt.keyCode == 65) {
-    			snake2.direction_queue.push(direction_enum.A);
-		    }
-		    else if (evt.keyCode == 68) {
-    			snake2.direction_queue.push(direction_enum.D);
-		    }
+
+		if(gameStarted)
+		{
+			if(!snake1.hasDied)
+			{
+			    if (evt.keyCode == 38 && !keyPressed[direction_enum.UP]) {
+		    		snake1.direction_queue.push(direction_enum.UP);
+			    }
+			    if (evt.keyCode == 40 && !keyPressed[direction_enum.DOWN]) {
+		    		snake1.direction_queue.push(direction_enum.DOWN);
+			    }
+			    if (evt.keyCode == 37 && !keyPressed[direction_enum.LEFT]) {
+		    		snake1.direction_queue.push(direction_enum.LEFT);
+			    }
+			    if (evt.keyCode == 39 && !keyPressed[direction_enum.RIGHT]) {
+		    		snake1.direction_queue.push(direction_enum.RIGHT);
+			    }
+			}
+			if(isP2Mode && !snake2.hasDied)
+		    {
+			    if (evt.keyCode == 87) {
+	    			snake2.direction_queue.push(direction_enum.W);
+			    }
+			    else if (evt.keyCode == 83) {
+	    			snake2.direction_queue.push(direction_enum.S);
+			    }
+			    else if (evt.keyCode == 65) {
+	    			snake2.direction_queue.push(direction_enum.A);
+			    }
+			    else if (evt.keyCode == 68) {
+	    			snake2.direction_queue.push(direction_enum.D);
+			    }
+			}
+			if(snake1.hasDied || snake2.hasDied)
+			{
+				if (evt.keyCode == 32) // spacebar to restart a game
+				{
+					initialize_game();
+				}
+			}
 		}
 	});
 
