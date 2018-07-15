@@ -7,6 +7,7 @@
 	left:3%;
 	border-radius: 5px;
 	background-color: #B9A959;
+	text-decoration: underline;
 }
 #oneP_button:hover{
 	background-color: #6ECF72;
@@ -40,14 +41,15 @@
 
 #score{
 	position:absolute;
-	left:3%;
+	left:1%;
 	top:53%;
-	width: 80px;
+	width: 135px;
 	background-color: #EEEEDD;
 	border: 3px solid #444477;
 	border-radius: 2px;
 	text-align:left;
 	padding: 3px;
+	font-size: 14px;
 }
 
 #game_container{

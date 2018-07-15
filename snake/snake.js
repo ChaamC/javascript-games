@@ -29,6 +29,7 @@ function snake () {
 	this.hasMovedSinceDirectionChanged = true;
 	this.hasDied = false;
 	this.color = [];
+	this.score = 0;
 }
 var snake1 = new snake();
 var snake2 = new snake();
@@ -36,8 +37,10 @@ var snake2 = new snake();
 var isP2Mode = false;
 
 var GRID_SIZE = 50;
+var STARTING_LENGTH = 4;
 
 var highscore = 0;
+var tie_score = 0;
 
 //Used for death animation
 var counter = 0;
@@ -63,6 +66,24 @@ function load_grid()
 //BODY = #3BD11B
 //http://paletton.com/#uid=32L1q1kllll8h12eObcrSvuCcXTkllll8h12eObcrSvuCcXTkllll8h12eObcrSvuCcXT
 //starting position
+
+function updateScoreDisplay()
+{
+	if(isP2Mode)
+	{
+		$("#best_score").text("");
+		$("#p1_score").text("Blue : " + snake1.score);
+		$("#p2_score").text("Purple : " + snake2.score);
+		$("#tie_score").text("Ties : " + tie_score);
+	}
+	else
+	{
+		$("#best_score").text("High score : " + highscore);
+		$("#p1_score").text("");
+		$("#p2_score").text("");
+		$("#tie_score").text("");
+	}
+}
 
 function initialize_game()
 {
@@ -280,15 +301,24 @@ function moveSnake(p_snake, enemy_snake)
 					$("#tile" + enemy_snake.position_array[i][0] + "_" + enemy_snake.position_array[i][1]).css('background-color', death_color[0]);
 				}
 				$("#winner_message").text("It's a tie, oh my gadd D:");
+				tie_score++;
 			}
 			else
 			{
 				$("#winner_message").text(enemy_snake.ID + " WINS!! :P");
+				enemy_snake.score++;
 			}
+			updateScoreDisplay()
 		}
 		else
 		{
-			$("#winner_message").text("Score : ");
+			var score = p_snake.position_array.length - STARTING_LENGTH;
+			if(highscore < score)
+			{
+				highscore = score;
+				updateScoreDisplay()
+			}
+			$("#winner_message").text("Score : " + score);
 		}
 	}
 }
@@ -501,11 +531,17 @@ $(document).ready(function(){
 
 	$(document).on('click', '#oneP_button', function(event){
 		isP2Mode = false;
+		updateScoreDisplay()
+		$("#oneP_button").css("text-decoration", "underline");
+		$("#twoP_button").css("text-decoration", "none");
 		initialize_game();
 	});
 
 	$(document).on('click', '#twoP_button', function(event){
 		isP2Mode = true;
+		$("#oneP_button").css("text-decoration", "none");
+		$("#twoP_button").css("text-decoration", "underline");
+		updateScoreDisplay()
 		initialize_game();
 	});
 
