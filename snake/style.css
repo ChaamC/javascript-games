@@ -1,6 +1,6 @@
 
 
-#restart_button{
+#oneP_button{
 	position: absolute;
 	top:115px;
 	width: 70px;
@@ -8,7 +8,7 @@
 	border-radius: 5px;
 	background-color: #B9A959;
 }
-#restart_button:hover{
+#oneP_button:hover{
 	background-color: #6ECF72;
 }
 #twoP_button{
