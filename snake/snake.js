@@ -354,9 +354,9 @@ $(document).ready(function(){
 	$("#cover").fadeOut(100);
 
 	$("#audio_music")[0].load();
-	$("#audio_music")[0].volume = 0.2;
+	$("#audio_music")[0].volume = 0.9;
 	$("#audio_music")[0].loop = true;
-	$("#audio_music")[0].pause();
+	$("#audio_music")[0].play();
 
 	snake1.direction = direction_enum.UP;
 	snake2.direction = direction_enum.W;
