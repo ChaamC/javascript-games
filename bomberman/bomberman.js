@@ -6,6 +6,7 @@ var tile_type = {
 	DESTRUCTIBLE: 1,
 	SOLID: 2
 }
+BOMB_DELAY = 50;
 
 function Player(x,y){
 	this.power = 1;
@@ -16,6 +17,8 @@ function Player(x,y){
 	this.speedX = 0;
 	this.speedY = 0;
 	this.bombTriggered = 0;
+	this.bombCounter = 0;
+	this.bombPosition = [0,0];
 }
 var keys_enum = {
 	UP: 0,
@@ -92,10 +95,13 @@ function load_map()
 		}
 	}
 }
-
-function isCollidingMap(player)
+function findTilePosition(position)
 {
-	var nextPosition = [player.x + player.speedX, player.y + player.speedY];
+	return [ Math.floor(position[0]/ TILE_SIZE), Math.floor(position[1]/ TILE_SIZE)];
+}
+
+function isCollidingMap(player, nextPosition)
+{
 	//check each corner
 	var cornersPositions = [nextPosition, 
 						[nextPosition[0] + player.size - 1, nextPosition[1]], 
@@ -104,7 +110,7 @@ function isCollidingMap(player)
 	for (var i = 0; i < cornersPositions.length; i++)
 	{
 		//find on which tile the corner is
-		var tilePosition = [ Math.floor(cornersPositions[i][0]/ TILE_SIZE), Math.floor(cornersPositions[i][1]/ TILE_SIZE)]
+		var tilePosition = findTilePosition(cornersPositions[i])
 		if ( current_map[ tilePosition[1] ][ tilePosition[0] ] != tile_type.EMPTY )
 			return true; // collision detected
 
@@ -119,19 +125,83 @@ function isCollidingPlayer(player, adversary)
 	return false;
 }
 
+function updatePosition(nextPosition, player, adversary)
+{
+	if(!isCollidingMap(player, nextPosition) && !isCollidingPlayer(player, adversary))
+	{
+		player.x = nextPosition[0];
+		player.y = nextPosition[1];
+	}
+}
+
 function updatePlayers()
 {
-	if(!isCollidingMap(player1) && !isCollidingPlayer(player1, player2))
-	{
-		player1.x += player1.speedX;
-		player1.y += player1.speedY;
-	}
-	if(!isCollidingMap(player2) && !isCollidingPlayer(player2, player1))
-	{
-		player2.x += player2.speedX;
-		player2.y += player2.speedY;
-	}
+	//update their position
+	if(player1.speedX != 0)
+		updatePosition( [player1.x + player1.speedX, player1.y], player1, player2);
+	if(player1.speedY != 0)
+		updatePosition( [player1.x, player1.y + player1.speedY], player1, player2);
+	if(player2.speedX != 0)
+		updatePosition( [player2.x + player2.speedX, player2.y], player2, player1);
+	if(player2.speedY != 0)
+		updatePosition( [player2.x, player2.y + player2.speedY], player2, player1);	
 
+	//update the bomb counters
+	if(player1.bombTriggered)
+		player1.bombCounter += 1;
+	if(player2.bombTriggered)
+		player2.bombCounter += 1;
+}
+
+function plantBomb(player)
+{
+	if(player.bombTriggered) // do nothing if there is already a bomb planted by the player
+		return;
+	player.bombTriggered = 1;
+	player.bombCounter = 0;
+
+	var tilePosition = findTilePosition([player.x + player.size / 2, player.y + player.size / 2]);
+
+	var img = document.createElement("IMG");
+	img.setAttribute("src", "resources/bomb.png");
+	img.setAttribute("class", "bomb_img")
+	$('#tile' + tilePosition[0] + '_' + tilePosition[1]).append(img);
+	player.bombPosition = tilePosition;
+}
+
+function destroyTile(x, y)
+{
+	$('#tile' + x + '_' + y + "> img.tile_img").attr("src", "resources/empty.png");
+	current_map[y][x] = tile_type.EMPTY;
+}
+
+function explodeBomb(player)
+{
+	var x = player.bombPosition[0];
+	var y = player.bombPosition[1];
+	$('#tile' + x + '_' + y + "> img.bomb_img").remove();
+	player.bombTriggered = 0;
+	player.bombCounter = 0;
+	//destroy destructible tiles in the x and y axis, according to the player<s power
+	for(var i = 1; i <= player.power; i++)
+	{
+		if(current_map[y - i][x] == tile_type.DESTRUCTIBLE)
+		{
+			destroyTile(x, y - i);
+		}
+		if(current_map[y + i][x] == tile_type.DESTRUCTIBLE)
+		{
+			destroyTile(x, y + i);
+		}
+		if(current_map[y][x - i] == tile_type.DESTRUCTIBLE)
+		{
+			destroyTile(x - i, y);
+		}
+		if(current_map[y][x + i] == tile_type.DESTRUCTIBLE)
+		{
+			destroyTile(x + i, y);
+		}
+	}
 }
 
 function draw()
@@ -152,7 +222,20 @@ $(document).ready(function(){
 
 	setInterval(function(){ 
 		updatePlayers();
+
+		//check for bomb explosions
+		if(player1.bombCounter >= BOMB_DELAY)
+		{
+			explodeBomb(player1);
+		}
+		if(player2.bombCounter >= BOMB_DELAY)
+		{
+			explodeBomb(player2);
+		}
+
 		draw();
+
+
 	}, 40);
 
 	$(document).on('keydown',function(evt) {
@@ -193,10 +276,10 @@ $(document).ready(function(){
 
 	    //Bomb keys
 	    if (evt.keyCode == 191) { // É
-	    	player1.bombTriggered = 1;
+	    	plantBomb(player1);
 	    }
 	    if (evt.keyCode == 81) { // Q
-	    	player2.bombTriggered = 1;
+	    	plantBomb(player2);
 	    }
 	});
 

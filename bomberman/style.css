@@ -69,7 +69,7 @@
 	color: #DDDDDD;
 	width: 500px;
 	left:20%;
-	z-index:2;
+	z-index:4;
 	text-align: center;
 }
 
@@ -101,6 +101,14 @@
 }
 
 .player{
+	position:absolute;
+	z-index:3;
+}
+.bomb_img{
+	position:absolute;
+	z-index:2;
+}
+.tile_img{
 	position:absolute;
 	z-index:1;
 }
