@@ -105,6 +105,9 @@
 	position:absolute;
 	z-index:3;
 }
+.player2_img{
+	z-index:4;
+}
 .bomb_img{
 	position:absolute;
 	z-index:2;

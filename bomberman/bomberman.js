@@ -13,7 +13,14 @@ var bomb1_anim_counter = 0;
 var bomb2_animation = 0;
 var bomb2_anim_counter = 0;
 
-function Player(x,y){
+var player1_animation = 0;
+var player1_anim_counter = 0;
+
+var player2_anim_onset = 0;
+var player2_anim_onset_direction = 1;
+var ANIM_ONSET_MAX = 7;
+
+function Player(x,y,img){
 	this.power = 1;
 	this.x = x;
 	this.y = y;
@@ -24,6 +31,8 @@ function Player(x,y){
 	this.bombTriggered = 0;
 	this.bombCounter = 0;
 	this.bombPosition = [0,0];
+	this.img = img;
+	this.anim_counter = 0;
 }
 var keys_enum = {
 	UP: 0,
@@ -37,8 +46,8 @@ var keys_enum = {
 };
 var keyPressed = [0,0,0,0, 0,0,0,0];
 
-var player1 = new Player(1 * TILE_SIZE + 5, 1 * TILE_SIZE + 5);
-var player2 = new Player(16 * TILE_SIZE + 5, 9 * TILE_SIZE + 5);
+var player1; 
+var player2;
 
 var map1 = [
 [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
@@ -136,6 +145,20 @@ function updatePosition(nextPosition, player, adversary)
 	{
 		player.x = nextPosition[0];
 		player.y = nextPosition[1];
+
+		//Update the animation
+		if(player.anim_counter == 0)
+		{
+			player.img.css('transform', "scaleX(-1)" );
+		}
+		else if(player.anim_counter == 4)
+		{
+			player.img.css('transform', "scaleX(1)" );
+		}
+		
+		player.anim_counter++;
+		if(player.anim_counter == 8)
+			player.anim_counter = 0;
 	}
 }
 
@@ -188,7 +211,7 @@ function plantBomb(player)
 	    	bomb1_anim_counter = 0;
 	        //clearInterval(animation);
 	    }
-	},10);
+	},20);
 }
 
 function destroyTile(x, y)
@@ -230,9 +253,10 @@ function explodeBomb(player)
 
 function draw()
 {
-	$("#player1").css('top', player1.y);
+
+	$("#player1").css('top', player1.y - 20);
 	$("#player1").css('left', player1.x);
-	$("#player2").css('top', player2.y);
+	$("#player2").css('top', player2.y + player2_anim_onset);
 	$("#player2").css('left', player2.x);
 }
 
@@ -241,11 +265,33 @@ $(document).ready(function(){
 	$('#left_panel').load('../navbar.html');
 	$("#cover").fadeOut(100);
 
+	player1 = new Player(1 * TILE_SIZE + 5, 1 * TILE_SIZE + 5, $('#player1').find('#player1_img'));
+	player2 = new Player(16 * TILE_SIZE + 5, 9 * TILE_SIZE + 5, $('#player2').find('#player2_img'));
+
 	load_grid();
 	load_map();
 
+	setInterval(function(){
+		if( player2_anim_onset_direction > 0 )
+		{
+	    	player2_anim_onset++;
+	    	if (player2_anim_onset >= ANIM_ONSET_MAX)
+	    		player2_anim_onset_direction = -1;
+		}
+		else
+		{
+	    	player2_anim_onset--
+	    	if (player2_anim_onset <= -ANIM_ONSET_MAX)
+	    		player2_anim_onset_direction = 1;
+		}
+
+	    
+	},20);
+
 	setInterval(function(){ 
 		updatePlayers();
+
+		
 
 		//check for bomb explosions
 		if(player1.bombCounter >= BOMB_DELAY)
