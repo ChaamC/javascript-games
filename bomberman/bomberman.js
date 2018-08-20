@@ -8,6 +8,11 @@ var tile_type = {
 }
 BOMB_DELAY = 50;
 
+var bomb1_animation = 0;
+var bomb1_anim_counter = 0;
+var bomb2_animation = 0;
+var bomb2_anim_counter = 0;
+
 function Player(x,y){
 	this.power = 1;
 	this.x = x;
@@ -159,14 +164,31 @@ function plantBomb(player)
 		return;
 	player.bombTriggered = 1;
 	player.bombCounter = 0;
+	bomb1_anim_counter = 0;
 
 	var tilePosition = findTilePosition([player.x + player.size / 2, player.y + player.size / 2]);
+	player.bombPosition = tilePosition;
 
 	var img = document.createElement("IMG");
 	img.setAttribute("src", "resources/bomb.png");
 	img.setAttribute("class", "bomb_img")
+	img.setAttribute("style", 'top: ' + (player.bombPosition[1]) * TILE_SIZE + "px");
+	// img.setAttribute("top", (player.bombPosition[1] + 2) * TILE_SIZE + "px");
 	$('#tile' + tilePosition[0] + '_' + tilePosition[1]).append(img);
-	player.bombPosition = tilePosition;
+
+
+	bomb1_animation = setInterval(function(){
+	    var top_position = bomb1_anim_counter * 50;
+	    var bottom_position = top_position + 50;
+	    var bomb_img_get = $('#tile' + tilePosition[0] + '_' + tilePosition[1]).find('.bomb_img');
+	    bomb_img_get.css('clip', "rect(" + top_position + "px, 50px, " + bottom_position + "px, 0)" );
+	    bomb_img_get.css('top', (player.bombPosition[1]) * TILE_SIZE - TILE_SIZE * bomb1_anim_counter);
+	    bomb1_anim_counter++;
+	    if(bomb1_anim_counter == 4){
+	    	bomb1_anim_counter = 0;
+	        //clearInterval(animation);
+	    }
+	},10);
 }
 
 function destroyTile(x, y)
@@ -202,6 +224,8 @@ function explodeBomb(player)
 			destroyTile(x + i, y);
 		}
 	}
+
+	clearInterval(bomb1_animation);
 }
 
 function draw()

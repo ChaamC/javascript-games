@@ -86,6 +86,7 @@
 	height: 550px;
 	top:7%;
 	left:9%;
+	overflow:hidden;
 }
 .column{
 	width: 50px;
@@ -107,6 +108,7 @@
 .bomb_img{
 	position:absolute;
 	z-index:2;
+	clip: rect(0px, 50px, 50px, 0);
 }
 .tile_img{
 	position:absolute;
