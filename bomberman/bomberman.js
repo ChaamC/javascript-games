@@ -8,10 +8,12 @@ var tile_type = {
 }
 BOMB_DELAY = 50;
 
-var bomb1_animation = 0;
-var bomb1_anim_counter = 0;
-var bomb2_animation = 0;
-var bomb2_anim_counter = 0;
+var branch_direction = {
+	UP: 0,
+	RIGHT: 1,
+	DOWN: 2,
+	LEFT: 3
+}
 
 var player1_animation = 0;
 var player1_anim_counter = 0;
@@ -20,7 +22,8 @@ var player2_anim_onset = 0;
 var player2_anim_onset_direction = 1;
 var ANIM_ONSET_MAX = 7;
 
-function Player(x,y,img){
+function Player(id, x,y,img){
+	this.id = id;
 	this.power = 1;
 	this.x = x;
 	this.y = y;
@@ -31,6 +34,10 @@ function Player(x,y,img){
 	this.bombTriggered = 0;
 	this.bombCounter = 0;
 	this.bombPosition = [0,0];
+	this.bomb_animation = 0;
+	this.bomb_anim_counter = 0;
+	this.explosion_animation = 0;
+	this.explosion_anim_counter = 0;
 	this.img = img;
 	this.anim_counter = 0;
 }
@@ -146,19 +153,23 @@ function updatePosition(nextPosition, player, adversary)
 		player.x = nextPosition[0];
 		player.y = nextPosition[1];
 
-		//Update the animation
-		if(player.anim_counter == 0)
+
+		if(player.id == 1)
 		{
-			player.img.css('transform', "scaleX(-1)" );
+			//Update the animation
+			if(player.anim_counter == 0)
+			{
+				player.img.css('transform', "scaleX(-1)" );
+			}
+			else if(player.anim_counter == 4)
+			{
+				player.img.css('transform', "scaleX(1)" );
+			}
+			
+			player.anim_counter++;
+			if(player.anim_counter == 8)
+				player.anim_counter = 0;
 		}
-		else if(player.anim_counter == 4)
-		{
-			player.img.css('transform', "scaleX(1)" );
-		}
-		
-		player.anim_counter++;
-		if(player.anim_counter == 8)
-			player.anim_counter = 0;
 	}
 }
 
@@ -187,7 +198,7 @@ function plantBomb(player)
 		return;
 	player.bombTriggered = 1;
 	player.bombCounter = 0;
-	bomb1_anim_counter = 0;
+	player.bomb_anim_counter = 0;
 
 	var tilePosition = findTilePosition([player.x + player.size / 2, player.y + player.size / 2]);
 	player.bombPosition = tilePosition;
@@ -196,20 +207,18 @@ function plantBomb(player)
 	img.setAttribute("src", "resources/bomb.png");
 	img.setAttribute("class", "bomb_img")
 	img.setAttribute("style", 'top: ' + (player.bombPosition[1]) * TILE_SIZE + "px");
-	// img.setAttribute("top", (player.bombPosition[1] + 2) * TILE_SIZE + "px");
 	$('#tile' + tilePosition[0] + '_' + tilePosition[1]).append(img);
 
 
-	bomb1_animation = setInterval(function(){
-	    var top_position = bomb1_anim_counter * 50;
+	player.bomb_animation = setInterval(function(){
+	    var top_position = player.bomb_anim_counter * 50;
 	    var bottom_position = top_position + 50;
 	    var bomb_img_get = $('#tile' + tilePosition[0] + '_' + tilePosition[1]).find('.bomb_img');
 	    bomb_img_get.css('clip', "rect(" + top_position + "px, 50px, " + bottom_position + "px, 0)" );
-	    bomb_img_get.css('top', (player.bombPosition[1]) * TILE_SIZE - TILE_SIZE * bomb1_anim_counter);
-	    bomb1_anim_counter++;
-	    if(bomb1_anim_counter == 4){
-	    	bomb1_anim_counter = 0;
-	        //clearInterval(animation);
+	    bomb_img_get.css('top', (player.bombPosition[1]) * TILE_SIZE - TILE_SIZE * player.bomb_anim_counter);
+	    player.bomb_anim_counter++;
+	    if(player.bomb_anim_counter == 4){
+	    	player.bomb_anim_counter = 0;
 	    }
 	},20);
 }
@@ -218,6 +227,117 @@ function destroyTile(x, y)
 {
 	$('#tile' + x + '_' + y + "> img.tile_img").attr("src", "resources/empty.png");
 	current_map[y][x] = tile_type.EMPTY;
+}
+
+function CreateExplosionImg(src, position, player)
+{
+	var img = document.createElement("IMG");
+	img.setAttribute("src", src);
+	img.setAttribute("class", "explosion " + "explosion" + player.id);
+	img.setAttribute("style", 'top: ' + (position[1]) * TILE_SIZE + "px");
+	img.setAttribute("style", 'left: ' + (position[0]) * TILE_SIZE + "px");
+	return img;
+}
+
+function getExplosionPosition(player, direction)
+{
+	var check_position = [0,0];
+	switch (direction)
+	{
+		case branch_direction.UP:
+			check_position = [player.bombPosition[0], player.bombPosition[1] - i];
+			break;
+		case branch_direction.DOWN:
+			check_position = [player.bombPosition[0], player.bombPosition[1] + i];
+			break;
+		case branch_direction.LEFT:
+			check_position = [player.bombPosition[0] - i, player.bombPosition[1]];
+			break;
+		case branch_direction.RIGHT:
+			check_position = [player.bombPosition[0] + i, player.bombPosition[1]];
+			break;
+	}
+	return check_position;
+}
+
+function validatePosition(position)
+{
+	return position[0] >= 0 && 
+			position[0] < GRID_SIZE[0] &&
+			position[1] >= 0 &&
+			position[1] < GRID_SIZE[1];
+}
+
+function drawExplosionBranch(player, branch_src, tip_src, direction)
+{
+	var actual_power = 0;
+	var explosion_position = [0,0];
+	for(i = 1 ; i <= player.power ; i++)
+	{
+		explosion_position = getExplosionPosition(player, direction);
+		if(validatePosition(explosion_position) && current_map[explosion_position[1]][explosion_position[0]] == tile_type.EMPTY )
+		{
+			actual_power = i;
+		}
+		else
+		{
+			break;
+		}
+	}
+	for (i = 1 ; i <= actual_power; i++)
+	{
+		explosion_position = getExplosionPosition(player, direction);
+		if(i == actual_power)
+		{
+			$('#tile' + explosion_position[0] + '_' + explosion_position[1]).append(
+				CreateExplosionImg(tip_src, explosion_position, player) );	
+		}
+		else
+		{
+			$('#tile' + explosion_position[0] + '_' + explosion_position[1]).append(
+				CreateExplosionImg(branch_src, explosion_position, player) );
+		}
+	}
+}
+
+function drawBombExplosionFrame(player)
+{
+	$(".explosion" + player.id).attr("src", "resources/explosion_middle.png");
+
+	drawExplosionBranch(player, "resources/explosion_branchV.png", "resources/explosion_tip_top.png", branch_direction.UP);
+	drawExplosionBranch(player, "resources/explosion_branchV.png", "resources/explosion_tip_bottom.png", branch_direction.DOWN);
+	drawExplosionBranch(player, "resources/explosion_branchH.png", "resources/explosion_tip_left.png", branch_direction.LEFT);
+	drawExplosionBranch(player, "resources/explosion_branchH.png", "resources/explosion_tip_right.png", branch_direction.RIGHT);
+
+}
+
+function drawBombExplosionAnimation(player)
+{
+	player.explosion_anim_counter = 0;
+	player.explosion_animation = setInterval(function(){
+		var explosion_offset = player.explosion_anim_counter % 4 - 1; //[-1, 2]
+		if(explosion_offset == 2) // [2]
+			explosion_offset = 0; // [0]
+		$(".explosion" + player.id).css('transform', " translate("+ + explosion_offset + "px)" );
+		if(player.explosion_anim_counter == 0)
+		{
+			$('#tile' + player.bombPosition[0] + '_' + player.bombPosition[1]).append(
+				CreateExplosionImg("resources/explosion_one_tile.png", player.bombPosition, player) );
+		}
+		else if(player.explosion_anim_counter == 5)
+		{
+			var explosion_position = [0,0];
+			$(".explosion" + player.id).attr("src", "resources/explosion_middle.png");
+			drawBombExplosionFrame(player);
+		}
+		else if(player.explosion_anim_counter == 35)
+		{
+
+			$(".explosion" + player.id).remove();
+			clearInterval(player.explosion_animation);
+		}
+		player.explosion_anim_counter++;
+	}, 20);
 }
 
 function explodeBomb(player)
@@ -230,33 +350,37 @@ function explodeBomb(player)
 	//destroy destructible tiles in the x and y axis, according to the player<s power
 	for(var i = 1; i <= player.power; i++)
 	{
-		if(current_map[y - i][x] == tile_type.DESTRUCTIBLE)
+		if(y - i >= 0 && current_map[y - i][x] == tile_type.DESTRUCTIBLE)
 		{
 			destroyTile(x, y - i);
 		}
-		if(current_map[y + i][x] == tile_type.DESTRUCTIBLE)
+		if(y + i < GRID_SIZE[1] && current_map[y + i][x] == tile_type.DESTRUCTIBLE)
 		{
 			destroyTile(x, y + i);
 		}
-		if(current_map[y][x - i] == tile_type.DESTRUCTIBLE)
+		if(x - i >= 0 && current_map[y][x - i] == tile_type.DESTRUCTIBLE)
 		{
 			destroyTile(x - i, y);
 		}
-		if(current_map[y][x + i] == tile_type.DESTRUCTIBLE)
+		if(x + i < GRID_SIZE[0] && current_map[y][x + i] == tile_type.DESTRUCTIBLE)
 		{
 			destroyTile(x + i, y);
 		}
 	}
 
-	clearInterval(bomb1_animation);
+	clearInterval(player.bomb_animation);
+
+	drawBombExplosionAnimation(player);
 }
 
 function draw()
 {
 
-	$("#player1").css('top', player1.y - 20);
+	$("#player1_char").css('top', player1.y - 20 - 7);
+	$("#player1_shadow").css('top', player1.y - 10);
 	$("#player1").css('left', player1.x);
-	$("#player2").css('top', player2.y + player2_anim_onset);
+	$("#player2_char").css('top', player2.y + player2_anim_onset - 14);
+	$("#player2_shadow").css('top', player2.y - 14);
 	$("#player2").css('left', player2.x);
 }
 
@@ -265,8 +389,8 @@ $(document).ready(function(){
 	$('#left_panel').load('../navbar.html');
 	$("#cover").fadeOut(100);
 
-	player1 = new Player(1 * TILE_SIZE + 5, 1 * TILE_SIZE + 5, $('#player1').find('#player1_img'));
-	player2 = new Player(16 * TILE_SIZE + 5, 9 * TILE_SIZE + 5, $('#player2').find('#player2_img'));
+	player1 = new Player(1, 1 * TILE_SIZE + 5, 1 * TILE_SIZE + 5, $('#player1').find('#player1_img'));
+	player2 = new Player(2, 16 * TILE_SIZE + 5, 9 * TILE_SIZE + 5, $('#player2').find('#player2_img'));
 
 	load_grid();
 	load_map();
@@ -338,10 +462,12 @@ $(document).ready(function(){
 	    else if (evt.keyCode == 65) { //A
     		player2.speedX = -player2.speed_factor;
     		keyPressed[keys_enum.A] = 1;
+    		player2.img.css('transform', "scaleX(1)" );
 	    }
 	    else if (evt.keyCode == 68) { //D
     		player2.speedX = player2.speed_factor;
     		keyPressed[keys_enum.D] = 1;
+    		player2.img.css('transform', "scaleX(-1)" );
 	    }
 
 	    //Bomb keys

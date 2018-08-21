@@ -105,8 +105,25 @@
 	position:absolute;
 	z-index:3;
 }
-.player2_img{
-	z-index:4;
+#player1_char{
+	position:absolute;
+	z-index:50;
+}
+#player1_shadow{
+	position:absolute;
+	z-index:49;
+}
+#player2_char{
+	position: absolute;
+	z-index:50;
+}
+#player2_shadow{
+	position: absolute;
+	z-index:49;
+}
+.explosion{
+	position: absolute;
+	z-index:2;
 }
 .bomb_img{
 	position:absolute;
