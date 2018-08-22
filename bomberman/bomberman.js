@@ -4,7 +4,9 @@ TILE_SIZE = 50;
 var tile_type = {
 	EMPTY: 0,
 	DESTRUCTIBLE: 1,
-	SOLID: 2
+	SOLID: 2,
+	EXPLOSION_P1: 3,
+	EXPLOSION_P2: 4
 }
 BOMB_DELAY = 50;
 
@@ -15,6 +17,9 @@ var branch_direction = {
 	LEFT: 3
 }
 
+var is_game_ended = false;
+var score = [0,0];
+
 var player1_animation = 0;
 var player1_anim_counter = 0;
 
@@ -22,13 +27,33 @@ var player2_anim_onset = 0;
 var player2_anim_onset_direction = 1;
 var ANIM_ONSET_MAX = 7;
 
+var POWER_UP_TYPE = {
+	POWER: 0,
+	PIERCE: 1,
+	NB_BOMBS: 2,
+	MOV_SPEED: 3,
+	REMOTE: 4,
+	INVERTED: 5
+}
+
+function PowerUp( x, y, type ){
+	this.tilePosition = [x,y];
+	this.type = type;
+}
+
 function Player(id, x,y,img){
 	this.id = id;
+	//powerups
 	this.power = 1;
+	this.pierce = 0;
+	this.nb_bombs = 1;
+	this.speed_factor = 10;//default = 10
+	this.remote = 0;
+	this.inverted = 0;
+	//
 	this.x = x;
 	this.y = y;
 	this.size = 40;
-	this.speed_factor = 10;
 	this.speedX = 0;
 	this.speedY = 0;
 	this.bombTriggered = 0;
@@ -115,10 +140,68 @@ function load_map()
 			}
 		}
 	}
+
+	player1 = new Player(1, 1 * TILE_SIZE + 5, 1 * TILE_SIZE + 5, $('#player1').find('#player1_img'));
+	player2 = new Player(2, 16 * TILE_SIZE + 5, 9 * TILE_SIZE + 5, $('#player2').find('#player2_img'));
+
+	$("#winner_message").text("");
+	$("#game_message").hide();
+	draw();
+
+
+	player1.img.css('transform', "scaleX(1) scaleY(1) rotate(0deg)");
+	player2.img.css('transform', "scaleX(1) scaleY(1) rotate(0deg)");
+	
+	is_game_ended = false;
+
 }
 function findTilePosition(position)
 {
 	return [ Math.floor(position[0]/ TILE_SIZE), Math.floor(position[1]/ TILE_SIZE)];
+}
+
+function endGame(player)
+{
+	is_game_ended = true;
+	if(player.id == 1)
+		score[1]++; 
+	else
+		score[0]++;
+	//update score
+	$('#winner1').text(score[0]);
+	$('#winner2').text(score[1]);
+
+	if(player.id == 1)
+		$("#winner_message").text("Player 2 wins!");
+	else
+		$("#winner_message").text("Player 1 wins!");
+
+	var death_animation_counter = 0;
+	var death_animation = setInterval(function(){
+
+		var scale_factor = -0.02 * death_animation_counter + 1;
+		var rotate_factor = death_animation_counter * 15;
+
+		player.img.css('transform', "scaleX(" + scale_factor + ") scaleY(" + scale_factor + ")  rotate(" + rotate_factor + "deg)");
+
+		death_animation_counter++;
+		if(death_animation_counter >= 50)
+		{
+			$("#game_message").show();
+			clearInterval(death_animation);
+		}
+	}, 30);
+
+}
+
+function checkExplosion(player)
+{
+	var tilePosition = findTilePosition([player.x,player.y]);
+	if ( current_map[ tilePosition[1] ][ tilePosition[0] ] == tile_type.EXPLOSION_P1 ||
+		 	current_map[ tilePosition[1] ][ tilePosition[0] ] == tile_type.EXPLOSION_P2 )
+	{
+		endGame(player);
+	}
 }
 
 function isCollidingMap(player, nextPosition)
@@ -227,6 +310,8 @@ function destroyTile(x, y)
 {
 	$('#tile' + x + '_' + y + "> img.tile_img").attr("src", "resources/empty.png");
 	current_map[y][x] = tile_type.EMPTY;
+
+
 }
 
 function CreateExplosionImg(src, position, player)
@@ -297,6 +382,10 @@ function drawExplosionBranch(player, branch_src, tip_src, direction)
 			$('#tile' + explosion_position[0] + '_' + explosion_position[1]).append(
 				CreateExplosionImg(branch_src, explosion_position, player) );
 		}
+		if(player.id == 1)
+			current_map[explosion_position[1]][explosion_position[0]] = tile_type.EXPLOSION_P1;
+		else
+			current_map[explosion_position[1]][explosion_position[0]] = tile_type.EXPLOSION_P2;
 	}
 }
 
@@ -311,6 +400,20 @@ function drawBombExplosionFrame(player)
 
 }
 
+function clearExplosion(explosion_type)
+{
+	for(var j = 0; j < GRID_SIZE[1]; j++)
+	{
+		for(var i = 0; i < GRID_SIZE[0]; i++)
+		{
+			if(current_map[j][i] == explosion_type)
+			{
+				current_map[j][i] = tile_type.EMPTY;
+			}
+		}
+	}
+}
+
 function drawBombExplosionAnimation(player)
 {
 	player.explosion_anim_counter = 0;
@@ -323,6 +426,11 @@ function drawBombExplosionAnimation(player)
 		{
 			$('#tile' + player.bombPosition[0] + '_' + player.bombPosition[1]).append(
 				CreateExplosionImg("resources/explosion_one_tile.png", player.bombPosition, player) );
+
+			if(player.id == 1)
+				current_map[player.bombPosition[1]][player.bombPosition[0]] = tile_type.EXPLOSION_P1;
+			else
+				current_map[player.bombPosition[1]][player.bombPosition[0]] = tile_type.EXPLOSION_P2;
 		}
 		else if(player.explosion_anim_counter == 5)
 		{
@@ -335,6 +443,14 @@ function drawBombExplosionAnimation(player)
 
 			$(".explosion" + player.id).remove();
 			clearInterval(player.explosion_animation);
+			if(player.id == 1)
+			{	
+				clearExplosion(tile_type.EXPLOSION_P1);
+			}
+			else
+			{
+				clearExplosion(tile_type.EXPLOSION_P2);
+			}
 		}
 		player.explosion_anim_counter++;
 	}, 20);
@@ -389,9 +505,6 @@ $(document).ready(function(){
 	$('#left_panel').load('../navbar.html');
 	$("#cover").fadeOut(100);
 
-	player1 = new Player(1, 1 * TILE_SIZE + 5, 1 * TILE_SIZE + 5, $('#player1').find('#player1_img'));
-	player2 = new Player(2, 16 * TILE_SIZE + 5, 9 * TILE_SIZE + 5, $('#player2').find('#player2_img'));
-
 	load_grid();
 	load_map();
 
@@ -413,23 +526,26 @@ $(document).ready(function(){
 	},20);
 
 	setInterval(function(){ 
-		updatePlayers();
 
+		if(!is_game_ended)
+		{
+			checkExplosion(player1);
+			checkExplosion(player2);
+			updatePlayers();
+
+			//check for bomb explosions
+			if(player1.bombCounter >= BOMB_DELAY)
+			{
+				explodeBomb(player1);
+			}
+			if(player2.bombCounter >= BOMB_DELAY)
+			{
+				explodeBomb(player2);
+			}
+
+			draw();
+		}
 		
-
-		//check for bomb explosions
-		if(player1.bombCounter >= BOMB_DELAY)
-		{
-			explodeBomb(player1);
-		}
-		if(player2.bombCounter >= BOMB_DELAY)
-		{
-			explodeBomb(player2);
-		}
-
-		draw();
-
-
 	}, 40);
 
 	$(document).on('keydown',function(evt) {
@@ -477,6 +593,7 @@ $(document).ready(function(){
 	    if (evt.keyCode == 81) { // Q
 	    	plantBomb(player2);
 	    }
+
 	});
 
 	$(document).on('keyup',function(evt) {
@@ -522,6 +639,11 @@ $(document).ready(function(){
     			player2.speedX = 0;
     		keyPressed[keys_enum.D] = 0;
 	    }
+	});
+
+	$(document).on('click', '#restart_button', function(event){
+		current_map = map1;
+		load_map();
 	});
 		
 });

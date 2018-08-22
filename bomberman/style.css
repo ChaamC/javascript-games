@@ -1,5 +1,4 @@
 
-
 #oneP_button{
 	position: absolute;
 	top:115px;
@@ -64,19 +63,6 @@
 	box-sizing: border-box;
 }
 
-.game_message{
-	position:absolute;
-	color: #DDDDDD;
-	width: 500px;
-	left:20%;
-	z-index:4;
-	text-align: center;
-}
-
-#winner_message{
-	top:40%;
-}
-
 #game_screen{
 	position: absolute;
 	border: 5px solid #a89859;
@@ -133,6 +119,33 @@
 .tile_img{
 	position:absolute;
 	z-index:1;
+}
+#game_message{
+	position:absolute;
+	color: #002c7d;
+	width: 200px;
+	height: 100px;
+	top: 30%;
+	left: 41%;
+	z-index:60;
+	text-align: center;
+	background-color: #eddcdc;
+	padding-top: 20px;
+
+	border: 4px solid #002c7d;
+	border-radius: 3px;
+}
+
+
+
+#restart_button{
+	position: relative;
+	top:30%;
+	width: 70px;
+	border-radius: 5px;
+	background-color: #B9A959;
+	text-decoration: underline;
+	z-index:60;
 }
 
 body {
