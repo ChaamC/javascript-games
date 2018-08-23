@@ -41,12 +41,17 @@ function PowerUp( x, y, type ){
 	this.type = type;
 }
 
+function Explosion(){
+	this.positions = [];
+}
+
 function Player(id, x,y,img){
 	this.id = id;
 	//powerups
-	this.power = 1;
+	this.power = 2;
 	this.pierce = 0;
-	this.nb_bombs = 1;
+	this.nb_bombs = 3;
+	this.nb_bombs_planted = 0;
 	this.speed_factor = 10;//default = 10
 	this.remote = 0;
 	this.inverted = 0;
@@ -56,13 +61,14 @@ function Player(id, x,y,img){
 	this.size = 40;
 	this.speedX = 0;
 	this.speedY = 0;
-	this.bombTriggered = 0;
-	this.bombCounter = 0;
-	this.bombPosition = [0,0];
-	this.bomb_animation = 0;
-	this.bomb_anim_counter = 0;
-	this.explosion_animation = 0;
-	this.explosion_anim_counter = 0;
+	this.bombCounter = [-1,-1,-1];
+	this.bombPosition = [[0,0],[0,0],[0,0]];
+	this.bomb_animation = [0,0,0];
+	this.bomb_anim_counter = [0,0,0];
+	this.explosions = [-1,-1,-1];
+	this.explosion_center_pos = [[0,0],[0,0],[0,0]];
+	this.explosion_animation = [0,0,0];
+	this.explosion_anim_counter = [0,0,0];
 	this.img = img;
 	this.anim_counter = 0;
 }
@@ -269,39 +275,75 @@ function updatePlayers()
 		updatePosition( [player2.x, player2.y + player2.speedY], player2, player1);	
 
 	//update the bomb counters
-	if(player1.bombTriggered)
-		player1.bombCounter += 1;
-	if(player2.bombTriggered)
-		player2.bombCounter += 1;
+	for(var i = 0; i < player1.bombCounter.length; i++)
+	{
+		if(player1.bombCounter[i] >= 0)
+			player1.bombCounter[i]++;
+	}
+	for(var i = 0; i < player2.bombCounter.length; i++)
+	{
+		if(player2.bombCounter[i] >= 0)
+			player2.bombCounter[i]++;
+	}
 }
 
 function plantBomb(player)
 {
-	if(player.bombTriggered) // do nothing if there is already a bomb planted by the player
+	if( player.nb_bombs_planted >= player.nb_bombs ) // do nothing if there is already a bomb planted by the player
 		return;
-	player.bombTriggered = 1;
-	player.bombCounter = 0;
-	player.bomb_anim_counter = 0;
+	var bomb_id = -1;
 
 	var tilePosition = findTilePosition([player.x + player.size / 2, player.y + player.size / 2]);
-	player.bombPosition = tilePosition;
+
+	//check if no bomb already in place
+	for(var i = 0; i < player1.bombPosition.length; i++)
+	{
+		if(player1.bombPosition[i][0] == tilePosition[0] && player1.bombPosition[i][1] == tilePosition[1])
+			return;
+	}
+	for(var i = 0; i < player2.bombPosition.length; i++)
+	{
+		if(player2.bombPosition[i][0] == tilePosition[0] && player2.bombPosition[i][1] == tilePosition[1])
+			return;
+	}
+
+	//assign an id to the first bomb slot available
+	for(var i = 0; i < player.bombCounter.length; i++)
+	{
+		if (player.bombCounter[i] == -1)
+		{
+			player.bombCounter[i] = 0;
+			bomb_id = i;
+			break;
+		}	
+
+	}
+	if(bomb_id < 0)
+		return;
+	player.nb_bombs_planted++;
+
+
+
+	
+
+	player.bombPosition[bomb_id] = tilePosition;
 
 	var img = document.createElement("IMG");
 	img.setAttribute("src", "resources/bomb.png");
 	img.setAttribute("class", "bomb_img")
-	img.setAttribute("style", 'top: ' + (player.bombPosition[1]) * TILE_SIZE + "px");
+	img.setAttribute("style", 'top: ' + (player.bombPosition[bomb_id][1]) * TILE_SIZE + "px");
 	$('#tile' + tilePosition[0] + '_' + tilePosition[1]).append(img);
 
 
-	player.bomb_animation = setInterval(function(){
-	    var top_position = player.bomb_anim_counter * 50;
+	player.bomb_animation[bomb_id] = setInterval(function(){
+	    var top_position = player.bomb_anim_counter[bomb_id] * 50;
 	    var bottom_position = top_position + 50;
 	    var bomb_img_get = $('#tile' + tilePosition[0] + '_' + tilePosition[1]).find('.bomb_img');
 	    bomb_img_get.css('clip', "rect(" + top_position + "px, 50px, " + bottom_position + "px, 0)" );
-	    bomb_img_get.css('top', (player.bombPosition[1]) * TILE_SIZE - TILE_SIZE * player.bomb_anim_counter);
-	    player.bomb_anim_counter++;
-	    if(player.bomb_anim_counter == 4){
-	    	player.bomb_anim_counter = 0;
+	    bomb_img_get.css('top', (player.bombPosition[bomb_id][1]) * TILE_SIZE - TILE_SIZE * player.bomb_anim_counter[bomb_id]);
+	    player.bomb_anim_counter[bomb_id]++;
+	    if(player.bomb_anim_counter[bomb_id] == 4){
+	    	player.bomb_anim_counter[bomb_id] = 0;
 	    }
 	},20);
 }
@@ -310,36 +352,34 @@ function destroyTile(x, y)
 {
 	$('#tile' + x + '_' + y + "> img.tile_img").attr("src", "resources/empty.png");
 	current_map[y][x] = tile_type.EMPTY;
-
-
 }
 
-function CreateExplosionImg(src, position, player)
+function CreateExplosionImg(src, position, player, bomb_id)
 {
 	var img = document.createElement("IMG");
 	img.setAttribute("src", src);
-	img.setAttribute("class", "explosion " + "explosion" + player.id);
+	img.setAttribute("class", "explosion " + "explosion" + player.id + bomb_id);
 	img.setAttribute("style", 'top: ' + (position[1]) * TILE_SIZE + "px");
 	img.setAttribute("style", 'left: ' + (position[0]) * TILE_SIZE + "px");
 	return img;
 }
 
-function getExplosionPosition(player, direction)
+function getExplosionPosition(player, direction, bomb_id)
 {
 	var check_position = [0,0];
 	switch (direction)
 	{
 		case branch_direction.UP:
-			check_position = [player.bombPosition[0], player.bombPosition[1] - i];
+			check_position = [player.explosions[bomb_id].positions[0][0], player.explosions[bomb_id].positions[0][1] - i];
 			break;
 		case branch_direction.DOWN:
-			check_position = [player.bombPosition[0], player.bombPosition[1] + i];
+			check_position = [player.explosions[bomb_id].positions[0][0], player.explosions[bomb_id].positions[0][1] + i];
 			break;
 		case branch_direction.LEFT:
-			check_position = [player.bombPosition[0] - i, player.bombPosition[1]];
+			check_position = [player.explosions[bomb_id].positions[0][0] - i, player.explosions[bomb_id].positions[0][1]];
 			break;
 		case branch_direction.RIGHT:
-			check_position = [player.bombPosition[0] + i, player.bombPosition[1]];
+			check_position = [player.explosions[bomb_id].positions[0][0] + i, player.explosions[bomb_id].positions[0][1]];
 			break;
 	}
 	return check_position;
@@ -353,14 +393,17 @@ function validatePosition(position)
 			position[1] < GRID_SIZE[1];
 }
 
-function drawExplosionBranch(player, branch_src, tip_src, direction)
+function drawExplosionBranch(player, branch_src, tip_src, direction, bomb_id)
 {
 	var actual_power = 0;
 	var explosion_position = [0,0];
 	for(i = 1 ; i <= player.power ; i++)
 	{
-		explosion_position = getExplosionPosition(player, direction);
-		if(validatePosition(explosion_position) && current_map[explosion_position[1]][explosion_position[0]] == tile_type.EMPTY )
+		explosion_position = getExplosionPosition(player, direction, bomb_id);
+		if(validatePosition(explosion_position) && 
+			(current_map[explosion_position[1]][explosion_position[0]] == tile_type.EMPTY ||
+				current_map[explosion_position[1]][explosion_position[0]] == tile_type.EXPLOSION_P1 ||
+				current_map[explosion_position[1]][explosion_position[0]] == tile_type.EXPLOSION_P2 ) )
 		{
 			actual_power = i;
 		}
@@ -371,16 +414,19 @@ function drawExplosionBranch(player, branch_src, tip_src, direction)
 	}
 	for (i = 1 ; i <= actual_power; i++)
 	{
-		explosion_position = getExplosionPosition(player, direction);
+		explosion_position = getExplosionPosition(player, direction, bomb_id);
+
+		player.explosions[bomb_id].positions.push(explosion_position);
+
 		if(i == actual_power)
 		{
 			$('#tile' + explosion_position[0] + '_' + explosion_position[1]).append(
-				CreateExplosionImg(tip_src, explosion_position, player) );	
+				CreateExplosionImg(tip_src, explosion_position, player, bomb_id) );	
 		}
 		else
 		{
 			$('#tile' + explosion_position[0] + '_' + explosion_position[1]).append(
-				CreateExplosionImg(branch_src, explosion_position, player) );
+				CreateExplosionImg(branch_src, explosion_position, player, bomb_id) );
 		}
 		if(player.id == 1)
 			current_map[explosion_position[1]][explosion_position[0]] = tile_type.EXPLOSION_P1;
@@ -389,18 +435,52 @@ function drawExplosionBranch(player, branch_src, tip_src, direction)
 	}
 }
 
-function drawBombExplosionFrame(player)
+function drawBombExplosionFrame(player, bomb_id)
 {
-	$(".explosion" + player.id).attr("src", "resources/explosion_middle.png");
+	$(".explosion" + player.id + bomb_id).attr("src", "resources/explosion_middle.png");
 
-	drawExplosionBranch(player, "resources/explosion_branchV.png", "resources/explosion_tip_top.png", branch_direction.UP);
-	drawExplosionBranch(player, "resources/explosion_branchV.png", "resources/explosion_tip_bottom.png", branch_direction.DOWN);
-	drawExplosionBranch(player, "resources/explosion_branchH.png", "resources/explosion_tip_left.png", branch_direction.LEFT);
-	drawExplosionBranch(player, "resources/explosion_branchH.png", "resources/explosion_tip_right.png", branch_direction.RIGHT);
+	drawExplosionBranch(player, "resources/explosion_branchV.png", "resources/explosion_tip_top.png", branch_direction.UP, bomb_id);
+	drawExplosionBranch(player, "resources/explosion_branchV.png", "resources/explosion_tip_bottom.png", branch_direction.DOWN, bomb_id);
+	drawExplosionBranch(player, "resources/explosion_branchH.png", "resources/explosion_tip_left.png", branch_direction.LEFT, bomb_id);
+	drawExplosionBranch(player, "resources/explosion_branchH.png", "resources/explosion_tip_right.png", branch_direction.RIGHT, bomb_id);
 
 }
 
-function clearExplosion(explosion_type)
+function foundOtherExplosions(x, y, player, bomb_id)
+{
+	for(var l = 0; l < player.explosions.length; l++)
+	{
+		if (l != bomb_id && player.explosions[l] != -1)
+		{
+			for(var m = 0; m < player.explosions[l].positions.length; m++)
+			{
+				if(player.explosions[l].positions[m][0] == x && player.explosions[l].positions[m][1] == y)
+					return true;
+			}
+		}
+	}
+
+	var enemy;
+	if(player.id == 1)
+		enemy = player2;
+	else
+		enemy = player1;
+
+	for(var l = 0; l < enemy.explosions.length; l++)
+	{
+		if(enemy.explosions[l] != -1)
+		{
+			for(var m = 0; m < enemy.explosions[l].positions.length; m++)
+			{
+				if(enemy.explosions[l].positions[m][0] == x && enemy.explosions[l].positions[m][1] == y)
+					return true;
+			}
+		}
+	}
+	return false;
+}
+
+function clearExplosion(explosion_type, player, bomb_id)
 {
 	for(var j = 0; j < GRID_SIZE[1]; j++)
 	{
@@ -408,85 +488,132 @@ function clearExplosion(explosion_type)
 		{
 			if(current_map[j][i] == explosion_type)
 			{
-				current_map[j][i] = tile_type.EMPTY;
+				for(var k = 0; k < player.explosions[bomb_id].positions.length; k++)
+				{
+					//check if explosion tile is part of the explosion being cleared
+					if(player.explosions[bomb_id].positions[k][0] == i && player.explosions[bomb_id].positions[k][1] == j)
+					{
+						if(!foundOtherExplosions(i, j, player, bomb_id))
+							current_map[j][i] = tile_type.EMPTY;
+					}
+				}
 			}
 		}
 	}
 }
 
-function drawBombExplosionAnimation(player)
+function drawBombExplosionAnimation(player, bomb_id)
 {
-	player.explosion_anim_counter = 0;
-	player.explosion_animation = setInterval(function(){
-		var explosion_offset = player.explosion_anim_counter % 4 - 1; //[-1, 2]
+	player.explosion_anim_counter[bomb_id] = 0;
+	player.explosion_animation[bomb_id] = setInterval(function(){
+
+		var explosion_offset = player.explosion_anim_counter[bomb_id] % 4 - 1; //[-1, 2]
 		if(explosion_offset == 2) // [2]
 			explosion_offset = 0; // [0]
-		$(".explosion" + player.id).css('transform', " translate("+ + explosion_offset + "px)" );
-		if(player.explosion_anim_counter == 0)
+		$(".explosion" + player.id + bomb_id).css('transform', " translate("+ + explosion_offset + "px)" );
+		if(player.explosion_anim_counter[bomb_id]== 0)
 		{
-			$('#tile' + player.bombPosition[0] + '_' + player.bombPosition[1]).append(
-				CreateExplosionImg("resources/explosion_one_tile.png", player.bombPosition, player) );
+			$('#tile' + player.explosions[bomb_id].positions[0][0] + '_' + player.explosions[bomb_id].positions[0][1]).append(
+				CreateExplosionImg("resources/explosion_one_tile.png", player.explosions[bomb_id], player, bomb_id) );
 
 			if(player.id == 1)
-				current_map[player.bombPosition[1]][player.bombPosition[0]] = tile_type.EXPLOSION_P1;
+				current_map[player.explosions[bomb_id].positions[0][1]][player.explosions[bomb_id].positions[0][0]] = tile_type.EXPLOSION_P1;
 			else
-				current_map[player.bombPosition[1]][player.bombPosition[0]] = tile_type.EXPLOSION_P2;
+				current_map[player.explosions[bomb_id].positions[0][1]][player.explosions[bomb_id].positions[0][0]] = tile_type.EXPLOSION_P2;
 		}
-		else if(player.explosion_anim_counter == 5)
+		else if(player.explosion_anim_counter[bomb_id] == 5)
 		{
-			var explosion_position = [0,0];
-			$(".explosion" + player.id).attr("src", "resources/explosion_middle.png");
-			drawBombExplosionFrame(player);
+			$(".explosion" + player.id + bomb_id).attr("src", "resources/explosion_middle.png");
+			drawBombExplosionFrame(player, bomb_id);
 		}
-		else if(player.explosion_anim_counter == 35)
+		else if(player.explosion_anim_counter[bomb_id] == 35)
 		{
 
-			$(".explosion" + player.id).remove();
-			clearInterval(player.explosion_animation);
+			$(".explosion" + player.id + bomb_id).remove();
+			clearInterval(player.explosion_animation[bomb_id]);
+			player.explosion_animation[bomb_id] = 0;
+			player.explosion_anim_counter[bomb_id] = 0;
 			if(player.id == 1)
 			{	
-				clearExplosion(tile_type.EXPLOSION_P1);
+				clearExplosion(tile_type.EXPLOSION_P1, player, bomb_id);
 			}
 			else
 			{
-				clearExplosion(tile_type.EXPLOSION_P2);
+				clearExplosion(tile_type.EXPLOSION_P2, player, bomb_id);
 			}
+			player.explosions[bomb_id] = -1;
+			return;
 		}
-		player.explosion_anim_counter++;
-	}, 20);
+
+		player.explosion_anim_counter[bomb_id]++;
+		
+	}, 20) ;
 }
 
-function explodeBomb(player)
+function explodeBomb(player, bomb_id)
 {
-	var x = player.bombPosition[0];
-	var y = player.bombPosition[1];
+	var x = player.bombPosition[bomb_id][0];
+	var y = player.bombPosition[bomb_id][1];
 	$('#tile' + x + '_' + y + "> img.bomb_img").remove();
-	player.bombTriggered = 0;
-	player.bombCounter = 0;
+
 	//destroy destructible tiles in the x and y axis, according to the player<s power
 	for(var i = 1; i <= player.power; i++)
 	{
 		if(y - i >= 0 && current_map[y - i][x] == tile_type.DESTRUCTIBLE)
 		{
 			destroyTile(x, y - i);
+			if(player.pierce == 0)
+				break;
 		}
+		else if(y - i >= 0 && current_map[y - i][x] == tile_type.SOLID)
+			break;
+	}
+	for(var i = 1; i <= player.power; i++)
+	{
 		if(y + i < GRID_SIZE[1] && current_map[y + i][x] == tile_type.DESTRUCTIBLE)
 		{
 			destroyTile(x, y + i);
+			if(player.pierce == 0)
+				break;
 		}
+		else if(y + i < GRID_SIZE[1] && current_map[y + i][x] == tile_type.SOLID)
+			break;
+	}
+	for(var i = 1; i <= player.power; i++)
+	{
 		if(x - i >= 0 && current_map[y][x - i] == tile_type.DESTRUCTIBLE)
 		{
 			destroyTile(x - i, y);
+			if(player.pierce == 0)
+				break;
 		}
+		else if(x - i >= 0 && current_map[y][x - i] == tile_type.SOLID)
+			break;
+	}
+	for(var i = 1; i <= player.power; i++)
+	{
 		if(x + i < GRID_SIZE[0] && current_map[y][x + i] == tile_type.DESTRUCTIBLE)
 		{
 			destroyTile(x + i, y);
+			if(player.pierce == 0)
+				break;
 		}
+		else if(x + i < GRID_SIZE[0] && current_map[y][x + i] == tile_type.SOLID)
+			break;
 	}
 
-	clearInterval(player.bomb_animation);
+	player.bombCounter[bomb_id] = -1;
+	player.nb_bombs_planted--;
+	clearInterval(player.bomb_animation[bomb_id]);
+	player.bomb_animation[bomb_id] = 0;
+	player.bomb_anim_counter[bomb_id] = 0;
 
-	drawBombExplosionAnimation(player);
+	player.explosions[bomb_id] = new Explosion();
+	player.explosions[bomb_id].positions.push(player.bombPosition[bomb_id]);
+	player.bombPosition[bomb_id] = [0,0];
+
+	drawBombExplosionAnimation(player, bomb_id);
+
 }
 
 function draw()
@@ -507,6 +634,11 @@ $(document).ready(function(){
 
 	load_grid();
 	load_map();
+
+	// var ppup = document.createElement("IMG");
+	// ppup.setAttribute("src", "resources/ppup_powerM.png");
+	// ppup.setAttribute("class", "power_up")
+	// $('#tile2_1').append(ppup);
 
 	setInterval(function(){
 		if( player2_anim_onset_direction > 0 )
@@ -534,13 +666,19 @@ $(document).ready(function(){
 			updatePlayers();
 
 			//check for bomb explosions
-			if(player1.bombCounter >= BOMB_DELAY)
+			for(var i = 0; i < player1.bombCounter.length; i++)
 			{
-				explodeBomb(player1);
+				if(player1.bombCounter[i] >= BOMB_DELAY)
+				{
+					explodeBomb(player1, i);
+				}
 			}
-			if(player2.bombCounter >= BOMB_DELAY)
+			for(var i = 0; i < player2.bombCounter.length; i++)
 			{
-				explodeBomb(player2);
+				if(player2.bombCounter[i] >= BOMB_DELAY)
+				{
+					explodeBomb(player2, i);
+				}
 			}
 
 			draw();
