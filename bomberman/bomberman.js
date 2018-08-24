@@ -8,7 +8,7 @@ var tile_type = {
 	EXPLOSION_P1: 3,
 	EXPLOSION_P2: 4
 }
-BOMB_DELAY = 50;
+BOMB_DELAY = 100;
 
 var branch_direction = {
 	UP: 0,
@@ -28,17 +28,30 @@ var player2_anim_onset_direction = 1;
 var ANIM_ONSET_MAX = 7;
 
 var POWER_UP_TYPE = {
-	POWER: 0,
-	PIERCE: 1,
-	NB_BOMBS: 2,
-	MOV_SPEED: 3,
-	REMOTE: 4,
-	INVERTED: 5
+	POWER_INC: 0,
+	POWER_DEC: 1,
+	PIERCE: 2,
+	NB_BOMBS_INC: 3,
+	NB_BOMBS_DEC: 4,
+	MOV_SPEED_INC: 5,
+	MOV_SPEED_DEC: 6,
+	REMOTE: 7,
+	INVERTED: 8,
+	NORMAL_DIR: 9
 }
+var MAX_POWER = 10;
+var SPEED_SLOW = 2;
+var SPEED_NORMAL = 5;
+var SPEED_FAST = 7.5;
+
+var power_ups = [];
+
+var POWER_UP_DELAY = 400;
 
 function PowerUp( x, y, type ){
 	this.tilePosition = [x,y];
 	this.type = type;
+	this.timer = 0;
 }
 
 function Explosion(){
@@ -48,17 +61,17 @@ function Explosion(){
 function Player(id, x,y,img){
 	this.id = id;
 	//powerups
-	this.power = 2;
-	this.pierce = 0;
-	this.nb_bombs = 3;
+	this.power = 1; // up to 10
+	this.pierce = 0; // 1 when activated
+	this.nb_bombs = 1; // default = 1 ; up to 3 max;
 	this.nb_bombs_planted = 0;
-	this.speed_factor = 10;//default = 10
-	this.remote = 0;
-	this.inverted = 0;
+	this.speed_factor = SPEED_NORMAL;//default = 5 ; speed up = 8 ; speed down = 2;
+	this.remote = 0; // 1 when activated
+	this.inverted = 0; // 1 when activated
 	//
 	this.x = x;
 	this.y = y;
-	this.size = 40;
+	this.size = 50;
 	this.speedX = 0;
 	this.speedY = 0;
 	this.bombCounter = [-1,-1,-1];
@@ -101,6 +114,10 @@ var map1 = [
 [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
 ];
 var current_map = map1;
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
 
 function load_grid()
 {
@@ -147,8 +164,8 @@ function load_map()
 		}
 	}
 
-	player1 = new Player(1, 1 * TILE_SIZE + 5, 1 * TILE_SIZE + 5, $('#player1').find('#player1_img'));
-	player2 = new Player(2, 16 * TILE_SIZE + 5, 9 * TILE_SIZE + 5, $('#player2').find('#player2_img'));
+	player1 = new Player(1, 1 * TILE_SIZE, 1 * TILE_SIZE, $('#player1').find('#player1_img'));
+	player2 = new Player(2, 16 * TILE_SIZE, 9 * TILE_SIZE, $('#player2').find('#player2_img'));
 
 	$("#winner_message").text("");
 	$("#game_message").hide();
@@ -202,7 +219,7 @@ function endGame(player)
 
 function checkExplosion(player)
 {
-	var tilePosition = findTilePosition([player.x,player.y]);
+	var tilePosition = findTilePosition([player.x + player.size/2, player.y + player.size/2]);
 	if ( current_map[ tilePosition[1] ][ tilePosition[0] ] == tile_type.EXPLOSION_P1 ||
 		 	current_map[ tilePosition[1] ][ tilePosition[0] ] == tile_type.EXPLOSION_P2 )
 	{
@@ -235,13 +252,111 @@ function isCollidingPlayer(player, adversary)
 	return false;
 }
 
-function updatePosition(nextPosition, player, adversary)
+function switchKeyPressed(player)
 {
-	if(!isCollidingMap(player, nextPosition) && !isCollidingPlayer(player, adversary))
+	var offset = 0;
+	if(player.id == 2)
+	{
+		offset = 4;
+	}
+	for(var k = 0 ; k < 4; k++)
+	{
+		if(keyPressed[k + offset] == 0)
+			keyPressed[k + offset] = 1;
+		else
+			keyPressed[k + offset] = 0;
+	}
+}
+
+function updatePowerUpCollision(player)
+{
+
+	var DETECTION_OFFSET = 10;
+
+	//check each corner
+	var cornersPositions = [[player.x + DETECTION_OFFSET, player.y + DETECTION_OFFSET], 
+						[player.x + player.size - 1 - DETECTION_OFFSET, player.y + DETECTION_OFFSET], 
+						[player.x + DETECTION_OFFSET, player.y + player.size - 1 - DETECTION_OFFSET],
+						[player.x + player.size - 1 - DETECTION_OFFSET, player.y + player.size - 1 - DETECTION_OFFSET]];
+	for (var i = 0; i < cornersPositions.length; i++)
+	{
+		//find on which tile the corner is
+		var tilePosition = findTilePosition(cornersPositions[i])
+		for (var j = 0; j < power_ups.length; j++)
+		{
+			if ( tilePosition[0] == power_ups[j].tilePosition[0] && tilePosition[1] == power_ups[j].tilePosition[1])
+			{
+				//collision with power_up 
+				switch(power_ups[j].type)
+				{
+					case POWER_UP_TYPE.POWER_INC:
+						if(player.power < MAX_POWER)
+							player.power++;
+						break;
+					case POWER_UP_TYPE.POWER_DEC:
+						if(player.power > 1)
+							player.power--;
+						break;
+					case POWER_UP_TYPE.PIERCE:
+						player.pierce = 1;
+						break;
+					case POWER_UP_TYPE.NB_BOMBS_INC:
+						if(player.nb_bombs < 3)
+							player.nb_bombs++;
+						break;
+					case POWER_UP_TYPE.NB_BOMBS_DEC:
+						if(player.nb_bombs > 1)
+							player.nb_bombs--;
+						break;
+					case POWER_UP_TYPE.MOV_SPEED_INC:
+						if(player.speed_factor >= SPEED_NORMAL)
+							player.speed_factor = SPEED_FAST;
+						else
+							player.speed_factor = SPEED_NORMAL;
+						break;
+					case POWER_UP_TYPE.MOV_SPEED_DEC:
+						if(player.speed_factor <= SPEED_NORMAL)
+							player.speed_factor = SPEED_SLOW;
+						else
+							player.speed_factor = SPEED_NORMAL;
+						break;
+					case POWER_UP_TYPE.REMOTE:
+						player.remote = 1;
+						break;
+					case POWER_UP_TYPE.INVERTED:
+						if( player.inverted != 1)
+						{
+							player.inverted = 1;
+							switchKeyPressed(player);
+						}
+						break;
+					case POWER_UP_TYPE.NORMAL_DIR:
+						if (player.inverted == 1)
+						{
+							player.inverted = 0;
+							switchKeyPressed(player);
+						}
+						break;
+				}
+
+				$('#tile' + power_ups[j].tilePosition[0] + '_' + power_ups[j].tilePosition[1] + "> img.power_up").remove();
+				power_ups.splice(j, 1);
+			}
+		}
+	}
+
+	//no collision if all the tests are passed
+	return false;
+}
+
+function updatePosition(nextPosition, player, adversary, isDirectionX)
+{
+	if(!isCollidingMap(player, nextPosition))
 	{
 		player.x = nextPosition[0];
 		player.y = nextPosition[1];
 
+		updatePowerUpCollision(player);
 
 		if(player.id == 1)
 		{
@@ -260,19 +375,39 @@ function updatePosition(nextPosition, player, adversary)
 				player.anim_counter = 0;
 		}
 	}
+	else //round position to the tile extremity
+	{
+		var tilePosition = findTilePosition(nextPosition)
+		if(isDirectionX)
+		{
+			if(player.speedX < 0)
+			{
+				tilePosition[0]++;
+			}
+			player.x = tilePosition[0] * TILE_SIZE;
+		}
+		else
+		{
+			if(player.speedY < 0)
+			{
+				tilePosition[1]++;
+			}
+			player.y = tilePosition[1] * TILE_SIZE;
+		}
+	}
 }
 
 function updatePlayers()
 {
 	//update their position
 	if(player1.speedX != 0)
-		updatePosition( [player1.x + player1.speedX, player1.y], player1, player2);
+		updatePosition( [player1.x + player1.speedX, player1.y], player1, player2, true);
 	if(player1.speedY != 0)
-		updatePosition( [player1.x, player1.y + player1.speedY], player1, player2);
+		updatePosition( [player1.x, player1.y + player1.speedY], player1, player2, false);
 	if(player2.speedX != 0)
-		updatePosition( [player2.x + player2.speedX, player2.y], player2, player1);
+		updatePosition( [player2.x + player2.speedX, player2.y], player2, player1, true);
 	if(player2.speedY != 0)
-		updatePosition( [player2.x, player2.y + player2.speedY], player2, player1);	
+		updatePosition( [player2.x, player2.y + player2.speedY], player2, player1, false);	
 
 	//update the bomb counters
 	for(var i = 0; i < player1.bombCounter.length; i++)
@@ -352,6 +487,53 @@ function destroyTile(x, y)
 {
 	$('#tile' + x + '_' + y + "> img.tile_img").attr("src", "resources/empty.png");
 	current_map[y][x] = tile_type.EMPTY;
+
+	//random chance of a powerup spawning -- 
+	if(getRandomInt(1) == 0)
+	{
+		//create new random powerups from the 10 types possible
+		power_ups.push(new PowerUp(x,y, getRandomInt(10))); 
+
+		var img = document.createElement("IMG");
+		switch (power_ups[power_ups.length - 1].type)
+		{
+			case POWER_UP_TYPE.POWER_INC:
+				img.setAttribute("src", "resources/ppup_powerP.png");
+				break;
+			case POWER_UP_TYPE.POWER_DEC:
+				img.setAttribute("src", "resources/ppup_powerM.png");
+				break;
+			case POWER_UP_TYPE.PIERCE:
+				img.setAttribute("src", "resources/ppup_pierce.png");
+				break;
+			case POWER_UP_TYPE.NB_BOMBS_INC:
+				img.setAttribute("src", "resources/ppup_nbBombsP.png");
+				break;
+			case POWER_UP_TYPE.NB_BOMBS_DEC:
+				img.setAttribute("src", "resources/ppup_nbBombsM.png");
+				break;
+			case POWER_UP_TYPE.MOV_SPEED_INC:
+				img.setAttribute("src", "resources/ppup_speedP.png");
+				break;
+			case POWER_UP_TYPE.MOV_SPEED_DEC:
+				img.setAttribute("src", "resources/ppup_speedM.png");
+				break;
+			case POWER_UP_TYPE.REMOTE:
+				img.setAttribute("src", "resources/ppup_remote.png");
+				break;
+			case POWER_UP_TYPE.INVERTED:
+				img.setAttribute("src", "resources/ppup_invert.png");
+				break;
+			case POWER_UP_TYPE.NORMAL_DIR:
+				img.setAttribute("src", "resources/ppup_normal_direction.png");
+				break;
+		}
+		img.setAttribute("class", "power_up")
+		//img.setAttribute("style", 'top: ' + (player.bombPosition[bomb_id][1]) * TILE_SIZE + "px");
+		$('#tile' + x + '_' + y).append(img);
+	}
+
+
 }
 
 function CreateExplosionImg(src, position, player, bomb_id)
@@ -619,11 +801,11 @@ function explodeBomb(player, bomb_id)
 function draw()
 {
 
-	$("#player1_char").css('top', player1.y - 20 - 7);
-	$("#player1_shadow").css('top', player1.y - 10);
+	$("#player1_char").css('top', player1.y - 20 - 2);
+	$("#player1_shadow").css('top', player1.y - 5);
 	$("#player1").css('left', player1.x);
-	$("#player2_char").css('top', player2.y + player2_anim_onset - 14);
-	$("#player2_shadow").css('top', player2.y - 14);
+	$("#player2_char").css('top', player2.y + player2_anim_onset - 9);
+	$("#player2_shadow").css('top', player2.y - 9);
 	$("#player2").css('left', player2.x);
 }
 
@@ -666,59 +848,84 @@ $(document).ready(function(){
 			updatePlayers();
 
 			//check for bomb explosions
-			for(var i = 0; i < player1.bombCounter.length; i++)
+			if(player1.remote == 0)
 			{
-				if(player1.bombCounter[i] >= BOMB_DELAY)
+				for(var i = 0; i < player1.bombCounter.length; i++)
 				{
-					explodeBomb(player1, i);
+					if(player1.bombCounter[i] >= BOMB_DELAY)
+					{
+						explodeBomb(player1, i);
+					}
 				}
 			}
-			for(var i = 0; i < player2.bombCounter.length; i++)
+			if(player2.remote == 0)
 			{
-				if(player2.bombCounter[i] >= BOMB_DELAY)
+				for(var i = 0; i < player2.bombCounter.length; i++)
 				{
-					explodeBomb(player2, i);
+					if(player2.bombCounter[i] >= BOMB_DELAY)
+					{
+						explodeBomb(player2, i);
+					}
+				}
+			}
+
+			//increase power_ups timers and check for timeouts
+			for(var i = 0; i < power_ups.length; i++)
+			{
+				power_ups[i].timer++;
+				if(power_ups[i].timer >= POWER_UP_DELAY)
+				{
+					$('#tile' + power_ups[i].tilePosition[0] + '_' + power_ups[i].tilePosition[1] + "> img.power_up").remove();
+					power_ups.splice(i, 1);
 				}
 			}
 
 			draw();
 		}
 		
-	}, 40);
+	}, 20);
 
 	$(document).on('keydown',function(evt) {
 
-	    if (evt.keyCode == 38) { //UP
+	    if ( (evt.keyCode == 38 && player1.inverted == 0) ||
+	    		(evt.keyCode == 40 && player1.inverted == 1) ) { //UP
     		player1.speedY = -player1.speed_factor;
     		keyPressed[keys_enum.UP] = 1;
 	    }
-	    if (evt.keyCode == 40) { //DOWN
+	    if ((evt.keyCode == 40 && player1.inverted == 0) ||
+	    		(evt.keyCode == 38 && player1.inverted == 1) ) { //DOWN
     		player1.speedY = player1.speed_factor;
     		keyPressed[keys_enum.DOWN] = 1;
 	    }
-	    if (evt.keyCode == 37) { //LEFT
+	    if ((evt.keyCode == 37 && player1.inverted == 0) ||
+	    		(evt.keyCode == 39 && player1.inverted == 1) ) { //LEFT
     		player1.speedX = -player1.speed_factor;
     		keyPressed[keys_enum.LEFT] = 1;
 	    }
-	    if (evt.keyCode == 39) { //RIGHT
+	    if ((evt.keyCode == 39 && player1.inverted == 0) ||
+	    		(evt.keyCode == 37 && player1.inverted == 1) ) { //RIGHT
     		player1.speedX = player1.speed_factor;
     		keyPressed[keys_enum.RIGHT] = 1;
 	    }
 
-	    if (evt.keyCode == 87) { //W
+	    if ((evt.keyCode == 87 && player2.inverted == 0) ||
+	    		(evt.keyCode == 83 && player2.inverted == 1) ) { //W
     		player2.speedY = -player2.speed_factor;
     		keyPressed[keys_enum.W] = 1;
 	    }
-	    else if (evt.keyCode == 83) { //S
+	    else if ((evt.keyCode == 83 && player2.inverted == 0) ||
+	    		(evt.keyCode == 87 && player2.inverted == 1) ) { //S
     		player2.speedY = player2.speed_factor;
     		keyPressed[keys_enum.S] = 1;
 	    }
-	    else if (evt.keyCode == 65) { //A
+	    else if ((evt.keyCode == 65 && player2.inverted == 0) ||
+	    		(evt.keyCode == 68 && player2.inverted == 1) ) { //A
     		player2.speedX = -player2.speed_factor;
     		keyPressed[keys_enum.A] = 1;
     		player2.img.css('transform', "scaleX(1)" );
 	    }
-	    else if (evt.keyCode == 68) { //D
+	    else if ((evt.keyCode == 68 && player2.inverted == 0) ||
+	    		(evt.keyCode == 65 && player2.inverted == 1) ) { //D
     		player2.speedX = player2.speed_factor;
     		keyPressed[keys_enum.D] = 1;
     		player2.img.css('transform', "scaleX(-1)" );
@@ -732,47 +939,88 @@ $(document).ready(function(){
 	    	plantBomb(player2);
 	    }
 
+	    //Remote detonator keys
+	    if (evt.keyCode == 190 && player1.remote == 1) { // .
+	    	var highestCounter = player1.bombCounter[0];
+	    	var highestCounterId = 0;
+	    	for(var i = 1; i < player1.bombCounter.length; i++)
+			{
+				if(player1.bombCounter[i] > highestCounter)
+				{
+					highestCounter = player1.bombCounter[i];
+					highestCounterId = i;
+				}
+			}
+			if( highestCounter >= 0 )
+			{
+				explodeBomb(player1, highestCounterId);
+			}
+	    }
+	    if (evt.keyCode == 49 && player2.remote == 1) { // 1
+			var highestCounter = player2.bombCounter[0];
+	    	var highestCounterId = 0;
+	    	for(var i = 1; i < player2.bombCounter.length; i++)
+			{
+				if(player2.bombCounter[i] > highestCounter)
+				{
+					highestCounter = player2.bombCounter[i];
+					highestCounterId = i;
+				}
+			}
+			if( highestCounter >= 0 )
+			{
+				explodeBomb(player2, highestCounterId);
+			}
+	    }
 	});
 
 	$(document).on('keyup',function(evt) {
 
-	    if (evt.keyCode == 38) { //UP
+	    if ((evt.keyCode == 38 && player1.inverted == 0) ||
+	    		(evt.keyCode == 40 && player1.inverted == 1 ) ) { //UP
 	    	if(!keyPressed[keys_enum.DOWN])
     			player1.speedY = 0;
     		keyPressed[keys_enum.UP] = 0;
 	    }
-	    if (evt.keyCode == 40) { //DOWN
+	    if ((evt.keyCode == 40 && player1.inverted == 0) ||
+	    		(evt.keyCode == 38 && player1.inverted == 1) ) { //DOWN
 	    	if(!keyPressed[keys_enum.UP])
     			player1.speedY = 0;
     		keyPressed[keys_enum.DOWN] = 0;
 	    }
-	    if (evt.keyCode == 37) { //LEFT
+	    if ((evt.keyCode == 37 && player1.inverted == 0) ||
+	    		(evt.keyCode == 39 && player1.inverted == 1) ) { //LEFT
 	    	if(!keyPressed[keys_enum.RIGHT])
     			player1.speedX = 0;
     		keyPressed[keys_enum.LEFT] = 0;
 	    }
-	    if (evt.keyCode == 39) { //RIGHT
+	    if ((evt.keyCode == 39 && player1.inverted == 0) ||
+	    		(evt.keyCode == 37 && player1.inverted == 1) ) { //RIGHT
 	    	if(!keyPressed[keys_enum.LEFT])
     			player1.speedX = 0;
     		keyPressed[keys_enum.RIGHT] = 0;
 	    }
 
-	    if (evt.keyCode == 87) { //W
+	    if ((evt.keyCode == 87 && player2.inverted == 0) ||
+	    		(evt.keyCode == 83 && player2.inverted == 1) ) { //W
 	    	if(!keyPressed[keys_enum.S])
     			player2.speedY = 0;
     		keyPressed[keys_enum.W] = 0;
 	    }
-	    else if (evt.keyCode == 83) { //S
+	    else if ((evt.keyCode == 83 && player2.inverted == 0) ||
+	    		(evt.keyCode == 87 && player2.inverted == 1) ) { //S
 	    	if(!keyPressed[keys_enum.W])
     			player2.speedY = 0;
     		keyPressed[keys_enum.S] = 0;
 	    }
-	    else if (evt.keyCode == 65) { //A
+	    else if ((evt.keyCode == 65 && player2.inverted == 0) ||
+	    		(evt.keyCode == 68 && player2.inverted == 1) ) { //A
 	    	if(!keyPressed[keys_enum.D])
     			player2.speedX = 0;
     		keyPressed[keys_enum.A] = 0;
 	    }
-	    else if (evt.keyCode == 68) { //D
+	    else if ((evt.keyCode == 68 && player2.inverted == 0) ||
+	    		(evt.keyCode == 65 && player2.inverted == 1) ) { //D
 	    	if(!keyPressed[keys_enum.A])
     			player2.speedX = 0;
     		keyPressed[keys_enum.D] = 0;
