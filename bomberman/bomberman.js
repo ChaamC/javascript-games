@@ -113,7 +113,20 @@ var map1 = [
 [2,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,2],
 [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
 ];
-var current_map = map1;
+var map2 = [
+[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+[2,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,2],
+[2,0,2,0,2,1,2,0,0,0,0,0,0,0,0,1,0,2],
+[2,1,1,0,1,1,1,0,0,0,0,0,0,0,0,1,0,2],
+[2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+[2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+[2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+[2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+];
+var current_map = [];
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
@@ -136,11 +149,19 @@ function load_grid()
 
 function load_map()
 {
-	for (y = 0; y < map1.length; y++)
+	//remove power_ups
+	for(var i = 0; i < power_ups.length; i++)
 	{
-		for(x = 0; x < map1[y].length; x++)
+		$('#tile' + power_ups[i].tilePosition[0] + '_' + power_ups[i].tilePosition[1] + "> img.power_up").remove();
+		power_ups.splice(i, 1);
+		i--;
+	}
+
+	for (y = 0; y < current_map.length; y++)
+	{
+		for(x = 0; x < current_map[y].length; x++)
 		{
-			switch (map1[y][x])
+			switch (current_map[y][x])
 			{
 				case tile_type.EMPTY:
 					var img = document.createElement("IMG");
@@ -238,7 +259,8 @@ function isCollidingMap(player, nextPosition)
 	{
 		//find on which tile the corner is
 		var tilePosition = findTilePosition(cornersPositions[i])
-		if ( current_map[ tilePosition[1] ][ tilePosition[0] ] != tile_type.EMPTY )
+		if ( current_map[ tilePosition[1] ][ tilePosition[0] ] == tile_type.SOLID  ||
+			current_map[ tilePosition[1] ][ tilePosition[0] ] == tile_type.DESTRUCTIBLE)
 			return true; // collision detected
 
 	}
@@ -247,8 +269,20 @@ function isCollidingMap(player, nextPosition)
 	return false;
 }
 
-function isCollidingPlayer(player, adversary)
+function isCollidingPlayer(player, nextPosition, adversary)
 {
+	var cornersPositions = [nextPosition, 
+						[nextPosition[0] + player.size - 1, nextPosition[1]], 
+						[nextPosition[0], nextPosition[1] + player.size - 1],
+						[nextPosition[0] + player.size - 1, nextPosition[1] + player.size - 1]];
+	for (var i = 0; i < cornersPositions.length; i++)
+	{
+		if( (cornersPositions[i][0] < adversary.x + adversary.size && cornersPositions[i][0] >= adversary.x) &&
+			(cornersPositions[i][1] < adversary.y + adversary.size && cornersPositions[i][1] >= adversary.y) )
+		{
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -341,6 +375,7 @@ function updatePowerUpCollision(player)
 
 				$('#tile' + power_ups[j].tilePosition[0] + '_' + power_ups[j].tilePosition[1] + "> img.power_up").remove();
 				power_ups.splice(j, 1);
+				break;
 			}
 		}
 	}
@@ -351,6 +386,11 @@ function updatePowerUpCollision(player)
 
 function updatePosition(nextPosition, player, adversary, isDirectionX)
 {
+	if(isCollidingPlayer(player, nextPosition, adversary))
+	{
+		//if collision with player, exit the function, player can't move in that direction
+		return;
+	}
 	if(!isCollidingMap(player, nextPosition))
 	{
 		player.x = nextPosition[0];
@@ -814,13 +854,11 @@ $(document).ready(function(){
 	$('#left_panel').load('../navbar.html');
 	$("#cover").fadeOut(100);
 
+	current_map = $.extend(true, [], map1);
+
 	load_grid();
 	load_map();
 
-	// var ppup = document.createElement("IMG");
-	// ppup.setAttribute("src", "resources/ppup_powerM.png");
-	// ppup.setAttribute("class", "power_up")
-	// $('#tile2_1').append(ppup);
 
 	setInterval(function(){
 		if( player2_anim_onset_direction > 0 )
@@ -877,6 +915,7 @@ $(document).ready(function(){
 				{
 					$('#tile' + power_ups[i].tilePosition[0] + '_' + power_ups[i].tilePosition[1] + "> img.power_up").remove();
 					power_ups.splice(i, 1);
+					i--;
 				}
 			}
 
@@ -887,91 +926,94 @@ $(document).ready(function(){
 
 	$(document).on('keydown',function(evt) {
 
-	    if ( (evt.keyCode == 38 && player1.inverted == 0) ||
-	    		(evt.keyCode == 40 && player1.inverted == 1) ) { //UP
-    		player1.speedY = -player1.speed_factor;
-    		keyPressed[keys_enum.UP] = 1;
-	    }
-	    if ((evt.keyCode == 40 && player1.inverted == 0) ||
-	    		(evt.keyCode == 38 && player1.inverted == 1) ) { //DOWN
-    		player1.speedY = player1.speed_factor;
-    		keyPressed[keys_enum.DOWN] = 1;
-	    }
-	    if ((evt.keyCode == 37 && player1.inverted == 0) ||
-	    		(evt.keyCode == 39 && player1.inverted == 1) ) { //LEFT
-    		player1.speedX = -player1.speed_factor;
-    		keyPressed[keys_enum.LEFT] = 1;
-	    }
-	    if ((evt.keyCode == 39 && player1.inverted == 0) ||
-	    		(evt.keyCode == 37 && player1.inverted == 1) ) { //RIGHT
-    		player1.speedX = player1.speed_factor;
-    		keyPressed[keys_enum.RIGHT] = 1;
-	    }
+		if(!is_game_ended)
+		{
+		    if ( (evt.keyCode == 38 && player1.inverted == 0) ||
+		    		(evt.keyCode == 40 && player1.inverted == 1) ) { //UP
+	    		player1.speedY = -player1.speed_factor;
+	    		keyPressed[keys_enum.UP] = 1;
+		    }
+		    if ((evt.keyCode == 40 && player1.inverted == 0) ||
+		    		(evt.keyCode == 38 && player1.inverted == 1) ) { //DOWN
+	    		player1.speedY = player1.speed_factor;
+	    		keyPressed[keys_enum.DOWN] = 1;
+		    }
+		    if ((evt.keyCode == 37 && player1.inverted == 0) ||
+		    		(evt.keyCode == 39 && player1.inverted == 1) ) { //LEFT
+	    		player1.speedX = -player1.speed_factor;
+	    		keyPressed[keys_enum.LEFT] = 1;
+		    }
+		    if ((evt.keyCode == 39 && player1.inverted == 0) ||
+		    		(evt.keyCode == 37 && player1.inverted == 1) ) { //RIGHT
+	    		player1.speedX = player1.speed_factor;
+	    		keyPressed[keys_enum.RIGHT] = 1;
+		    }
 
-	    if ((evt.keyCode == 87 && player2.inverted == 0) ||
-	    		(evt.keyCode == 83 && player2.inverted == 1) ) { //W
-    		player2.speedY = -player2.speed_factor;
-    		keyPressed[keys_enum.W] = 1;
-	    }
-	    else if ((evt.keyCode == 83 && player2.inverted == 0) ||
-	    		(evt.keyCode == 87 && player2.inverted == 1) ) { //S
-    		player2.speedY = player2.speed_factor;
-    		keyPressed[keys_enum.S] = 1;
-	    }
-	    else if ((evt.keyCode == 65 && player2.inverted == 0) ||
-	    		(evt.keyCode == 68 && player2.inverted == 1) ) { //A
-    		player2.speedX = -player2.speed_factor;
-    		keyPressed[keys_enum.A] = 1;
-    		player2.img.css('transform', "scaleX(1)" );
-	    }
-	    else if ((evt.keyCode == 68 && player2.inverted == 0) ||
-	    		(evt.keyCode == 65 && player2.inverted == 1) ) { //D
-    		player2.speedX = player2.speed_factor;
-    		keyPressed[keys_enum.D] = 1;
-    		player2.img.css('transform', "scaleX(-1)" );
-	    }
+		    if ((evt.keyCode == 87 && player2.inverted == 0) ||
+		    		(evt.keyCode == 83 && player2.inverted == 1) ) { //W
+	    		player2.speedY = -player2.speed_factor;
+	    		keyPressed[keys_enum.W] = 1;
+		    }
+		    else if ((evt.keyCode == 83 && player2.inverted == 0) ||
+		    		(evt.keyCode == 87 && player2.inverted == 1) ) { //S
+	    		player2.speedY = player2.speed_factor;
+	    		keyPressed[keys_enum.S] = 1;
+		    }
+		    else if ((evt.keyCode == 65 && player2.inverted == 0) ||
+		    		(evt.keyCode == 68 && player2.inverted == 1) ) { //A
+	    		player2.speedX = -player2.speed_factor;
+	    		keyPressed[keys_enum.A] = 1;
+	    		player2.img.css('transform', "scaleX(1)" );
+		    }
+		    else if ((evt.keyCode == 68 && player2.inverted == 0) ||
+		    		(evt.keyCode == 65 && player2.inverted == 1) ) { //D
+	    		player2.speedX = player2.speed_factor;
+	    		keyPressed[keys_enum.D] = 1;
+	    		player2.img.css('transform', "scaleX(-1)" );
+		    }
 
-	    //Bomb keys
-	    if (evt.keyCode == 191) { // É
-	    	plantBomb(player1);
-	    }
-	    if (evt.keyCode == 81) { // Q
-	    	plantBomb(player2);
-	    }
+		    //Bomb keys
+		    if (evt.keyCode == 191) { // É
+		    	plantBomb(player1);
+		    }
+		    if (evt.keyCode == 81) { // Q
+		    	plantBomb(player2);
+		    }
 
-	    //Remote detonator keys
-	    if (evt.keyCode == 190 && player1.remote == 1) { // .
-	    	var highestCounter = player1.bombCounter[0];
-	    	var highestCounterId = 0;
-	    	for(var i = 1; i < player1.bombCounter.length; i++)
-			{
-				if(player1.bombCounter[i] > highestCounter)
+		    //Remote detonator keys
+		    if (evt.keyCode == 190 && player1.remote == 1) { // .
+		    	var highestCounter = player1.bombCounter[0];
+		    	var highestCounterId = 0;
+		    	for(var i = 1; i < player1.bombCounter.length; i++)
 				{
-					highestCounter = player1.bombCounter[i];
-					highestCounterId = i;
+					if(player1.bombCounter[i] > highestCounter)
+					{
+						highestCounter = player1.bombCounter[i];
+						highestCounterId = i;
+					}
 				}
-			}
-			if( highestCounter >= 0 )
-			{
-				explodeBomb(player1, highestCounterId);
-			}
-	    }
-	    if (evt.keyCode == 49 && player2.remote == 1) { // 1
-			var highestCounter = player2.bombCounter[0];
-	    	var highestCounterId = 0;
-	    	for(var i = 1; i < player2.bombCounter.length; i++)
-			{
-				if(player2.bombCounter[i] > highestCounter)
+				if( highestCounter >= 0 )
 				{
-					highestCounter = player2.bombCounter[i];
-					highestCounterId = i;
+					explodeBomb(player1, highestCounterId);
 				}
-			}
-			if( highestCounter >= 0 )
-			{
-				explodeBomb(player2, highestCounterId);
-			}
-	    }
+		    }
+		    if (evt.keyCode == 49 && player2.remote == 1) { // 1
+				var highestCounter = player2.bombCounter[0];
+		    	var highestCounterId = 0;
+		    	for(var i = 1; i < player2.bombCounter.length; i++)
+				{
+					if(player2.bombCounter[i] > highestCounter)
+					{
+						highestCounter = player2.bombCounter[i];
+						highestCounterId = i;
+					}
+				}
+				if( highestCounter >= 0 )
+				{
+					explodeBomb(player2, highestCounterId);
+				}
+		    }
+		}
 	});
 
 	$(document).on('keyup',function(evt) {
@@ -1028,7 +1070,7 @@ $(document).ready(function(){
 	});
 
 	$(document).on('click', '#restart_button', function(event){
-		current_map = map1;
+		current_map = $.extend(true, [], map1);
 		load_map();
 	});
 		

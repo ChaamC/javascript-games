@@ -78,4 +78,5 @@
 	top:0%;
 	float:right;
 	background-color: #6D1F23;
+	z-index:1000;
 }
