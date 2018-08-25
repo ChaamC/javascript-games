@@ -63,7 +63,7 @@ function Player(id, x,y,img){
 	//powerups
 	this.power = 1; // up to 10
 	this.pierce = 0; // 1 when activated
-	this.nb_bombs = 1; // default = 1 ; up to 3 max;
+	this.nb_bombs = 3; // default = 1 ; up to 3 max;
 	this.nb_bombs_planted = 0;
 	this.speed_factor = SPEED_NORMAL;//default = 5 ; speed up = 8 ; speed down = 2;
 	this.remote = 0; // 1 when activated
@@ -84,6 +84,7 @@ function Player(id, x,y,img){
 	this.explosion_anim_counter = [0,0,0];
 	this.img = img;
 	this.anim_counter = 0;
+	this.walking_on_bomb_id = [];
 }
 var keys_enum = {
 	UP: 0,
@@ -288,6 +289,81 @@ function isCollidingPlayer(player, nextPosition, adversary)
 	return false;
 }
 
+function isCollidingBomb(player, nextPosition)
+{
+	var cornersPositions = [nextPosition, 
+						[nextPosition[0] + player.size - 1, nextPosition[1]], 
+						[nextPosition[0], nextPosition[1] + player.size - 1],
+						[nextPosition[0] + player.size - 1, nextPosition[1] + player.size - 1]];
+	
+	var is_still_on_planted_bomb = [];
+
+	for (var j = 0; j < player1.bombCounter.length; j++)
+	{
+		if(player1.bombCounter[j] != -1)
+		{
+			for (var i = 0; i < cornersPositions.length; i++)
+			{
+				if( (cornersPositions[i][0] < player1.bombPosition[j][0] * TILE_SIZE + TILE_SIZE &&
+					 cornersPositions[i][0] >= player1.bombPosition[j][0] * TILE_SIZE) &&
+					(cornersPositions[i][1] < player1.bombPosition[j][1] * TILE_SIZE + TILE_SIZE &&
+					 cornersPositions[i][1] >= player1.bombPosition[j][1] * TILE_SIZE) )
+				{
+					if( player.walking_on_bomb_id.includes(j) && player.id == 1)
+					{
+						//IGNORE this case, player is still walking on his last planted bomb
+						if( !is_still_on_planted_bomb.includes(j) )
+							is_still_on_planted_bomb.push(j);
+
+					}
+					else
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+	for (var j = 0; j < player2.bombCounter.length; j++)
+	{
+		if(player2.bombCounter[j] != -1)
+		{
+			for (var i = 0; i < cornersPositions.length; i++)
+			{
+				if( (cornersPositions[i][0] < player2.bombPosition[j][0] * TILE_SIZE + TILE_SIZE &&
+					 cornersPositions[i][0] >= player2.bombPosition[j][0] * TILE_SIZE) &&
+					(cornersPositions[i][1] < player2.bombPosition[j][1] * TILE_SIZE + TILE_SIZE &&
+					 cornersPositions[i][1] >= player2.bombPosition[j][1] * TILE_SIZE) )
+				{
+					if( player.walking_on_bomb_id.includes(j) && player.id == 2)
+					{
+						//IGNORE this case, player is still walking on his last planted bomb
+						if( !is_still_on_planted_bomb.includes(j) )
+							is_still_on_planted_bomb.push(j);
+					}
+					else
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	for (var j = 0; j < player.walking_on_bomb_id.length; j++)
+	{
+		if( !is_still_on_planted_bomb.includes(player.walking_on_bomb_id[j]) )
+		{
+			player.walking_on_bomb_id.splice(player.walking_on_bomb_id.indexOf(player.walking_on_bomb_id[j]), 1);	
+		}
+		// for (var i = 0; i < is_still_on_planted_bomb.length; i++)
+		// { 	// player is not walking on his planted bomb anymore
+		// 	player.walking_on_bomb_id.splice(player.walking_on_bomb_id.indexOf(is_still_on_planted_bomb[i]), 1); 
+		// }
+	}
+	return false;
+}
+
 function switchKeyPressed(player)
 {
 	var offset = 0;
@@ -390,12 +466,12 @@ function updatePowerUpCollision(player)
 
 function updatePosition(nextPosition, player, adversary, isDirectionX)
 {
-	if(isCollidingPlayer(player, nextPosition, adversary))
-	{
-		//if collision with player, exit the function, player can't move in that direction
-		return;
-	}
-	if(!isCollidingMap(player, nextPosition))
+	// if(isCollidingPlayer(player, nextPosition, adversary))
+	// {
+	// 	//if collision with player, exit the function, player can't move in that direction
+	// 	return;
+	// }
+	if(!isCollidingMap(player, nextPosition) && !isCollidingBomb(player, nextPosition))
 	{
 		player.x = nextPosition[0];
 		player.y = nextPosition[1];
@@ -466,11 +542,14 @@ function updatePlayers()
 	}
 }
 
-function plantBomb(player)
+function plantBomb(player, adversary)
 {
 	if( player.nb_bombs_planted >= player.nb_bombs ) // do nothing if there is already a bomb planted by the player
 		return;
 	var bomb_id = -1;
+
+	if(isCollidingPlayer(player, [player.x, player.y], adversary)) // do nothing if player is on another player
+		return;
 
 	var tilePosition = findTilePosition([player.x + player.size / 2, player.y + player.size / 2]);
 
@@ -500,6 +579,8 @@ function plantBomb(player)
 	if(bomb_id < 0)
 		return;
 	player.nb_bombs_planted++;
+
+	player.walking_on_bomb_id.push( bomb_id );
 
 	$("#audio_planting").clone()[0].play();
 
@@ -876,7 +957,7 @@ $(document).ready(function(){
 	$("#audio_music")[0].loop = true;
 	$("#audio_music")[0].play();
 
-	current_map = $.extend(true, [], map1);
+	current_map = $.extend(true, [], map2);
 
 	load_grid();
 	load_map();
@@ -996,10 +1077,10 @@ $(document).ready(function(){
 
 		    //Bomb keys
 		    if (evt.keyCode == 191) { // É
-		    	plantBomb(player1);
+		    	plantBomb(player1, player2);
 		    }
 		    if (evt.keyCode == 81) { // Q
-		    	plantBomb(player2);
+		    	plantBomb(player2, player1);
 		    }
 
 		    //Remote detonator keys
