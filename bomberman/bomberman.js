@@ -42,7 +42,7 @@ var POWER_UP_TYPE = {
 var MAX_POWER = 10;
 var SPEED_SLOW = 2;
 var SPEED_NORMAL = 5;
-var SPEED_FAST = 7.5;
+var SPEED_FAST = 6.25;
 
 var power_ups = [];
 
@@ -104,13 +104,13 @@ var map1 = [
 [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
 [2,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,2],
 [2,0,2,1,2,1,2,1,2,1,2,1,2,1,2,1,0,2],
-[2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2],
+[2,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,2],
 [2,1,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2],
-[2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2],
+[2,1,0,1,1,1,0,1,1,0,1,1,0,1,1,1,1,2],
 [2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,1,2],
-[2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2],
-[2,0,1,2,1,2,1,2,1,2,1,2,1,2,1,2,0,2],
-[2,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,2],
+[2,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,2],
+[2,0,1,2,1,2,1,2,0,2,1,2,1,2,1,2,0,2],
+[2,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,2],
 [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
 ];
 var map2 = [
@@ -219,6 +219,8 @@ function endGame(player)
 		$("#winner_message").text("Player 2 wins!");
 	else
 		$("#winner_message").text("Player 1 wins!");
+
+	$("#audio_death").clone()[0].play();
 
 	var death_animation_counter = 0;
 	var death_animation = setInterval(function(){
@@ -373,6 +375,8 @@ function updatePowerUpCollision(player)
 						break;
 				}
 
+				$("#audio_ppup").clone()[0].play();
+
 				$('#tile' + power_ups[j].tilePosition[0] + '_' + power_ups[j].tilePosition[1] + "> img.power_up").remove();
 				power_ups.splice(j, 1);
 				break;
@@ -497,6 +501,8 @@ function plantBomb(player)
 		return;
 	player.nb_bombs_planted++;
 
+	$("#audio_planting").clone()[0].play();
+
 
 
 	
@@ -529,7 +535,7 @@ function destroyTile(x, y)
 	current_map[y][x] = tile_type.EMPTY;
 
 	//random chance of a powerup spawning -- 
-	if(getRandomInt(1) == 0)
+	if(getRandomInt(5) == 0)
 	{
 		//create new random powerups from the 10 types possible
 		power_ups.push(new PowerUp(x,y, getRandomInt(10))); 
@@ -774,6 +780,8 @@ function drawBombExplosionAnimation(player, bomb_id)
 
 function explodeBomb(player, bomb_id)
 {
+	$("#audio_explosion").clone()[0].play();
+
 	var x = player.bombPosition[bomb_id][0];
 	var y = player.bombPosition[bomb_id][1];
 	$('#tile' + x + '_' + y + "> img.bomb_img").remove();
@@ -853,6 +861,20 @@ $(document).ready(function(){
 	//hint: http-server
 	$('#left_panel').load('../navbar.html');
 	$("#cover").fadeOut(100);
+
+	$("#audio_planting")[0].load();
+	$("#audio_planting")[0].volume = 1.0;
+	$("#audio_explosion")[0].load();
+	$("#audio_explosion")[0].volume = 0.5;
+	$("#audio_ppup")[0].load();
+	$("#audio_ppup")[0].volume = 0.5;
+	$("#audio_death")[0].load();
+	$("#audio_death")[0].volume = 0.5;
+
+	$("#audio_music")[0].load();
+	$("#audio_music")[0].volume = 0.22;
+	$("#audio_music")[0].loop = true;
+	$("#audio_music")[0].play();
 
 	current_map = $.extend(true, [], map1);
 
@@ -1072,6 +1094,21 @@ $(document).ready(function(){
 	$(document).on('click', '#restart_button', function(event){
 		current_map = $.extend(true, [], map1);
 		load_map();
+	});
+
+	$(document).on('click', '#sound_button', function(event){
+		if($(this).hasClass("on"))
+		{
+			$(this).addClass("off");
+			$(this).removeClass("on");
+			$("#audio_music")[0].pause();
+		}
+		else
+		{
+			$(this).addClass("on");
+			$(this).removeClass("off");
+			$("#audio_music")[0].play();
+		}
 	});
 		
 });
