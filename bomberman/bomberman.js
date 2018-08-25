@@ -63,7 +63,7 @@ function Player(id, x,y,img){
 	//powerups
 	this.power = 1; // up to 10
 	this.pierce = 0; // 1 when activated
-	this.nb_bombs = 3; // default = 1 ; up to 3 max;
+	this.nb_bombs = 1; // default = 1 ; up to 3 max;
 	this.nb_bombs_planted = 0;
 	this.speed_factor = SPEED_NORMAL;//default = 5 ; speed up = 8 ; speed down = 2;
 	this.remote = 0; // 1 when activated
@@ -957,7 +957,7 @@ $(document).ready(function(){
 	$("#audio_music")[0].loop = true;
 	$("#audio_music")[0].play();
 
-	current_map = $.extend(true, [], map2);
+	current_map = $.extend(true, [], map1);
 
 	load_grid();
 	load_map();
